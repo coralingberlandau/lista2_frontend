@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Alert } from 'react-native';
 import axios from 'axios';
 import { ScrollView } from 'react-native-gesture-handler';
 import { RouteProp, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import AuroraBackground from '@/components/AuroraBackground';
+import GlassCard from '@/components/GlassCard';
+import PrimaryButton from '@/components/PrimaryButton';
+import { colors, fonts, radii } from '@/constants/theme';
 
 type NavigationProps = StackNavigationProp<RootStackParamList>;
 type RootStackParamList = {
   ChangePassword: { email: string };
-  Login: undefined; 
+  Login: undefined;
 };
 
 type ChangePasswordRouteProp = RouteProp<RootStackParamList, 'ChangePassword'>;
@@ -57,7 +61,7 @@ const ChangePassword: React.FC = () => {
       });
       setMessage('Password has been changed successfully!');
       setTimeout(() => {
-        navigation.navigate('Login'); 
+        navigation.navigate('Login');
       }, 2000);
     } catch (error: any) {
       console.error('Error:', error);
@@ -71,107 +75,118 @@ const ChangePassword: React.FC = () => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Change Password</Text>
-      <View style={styles.inputContainer}>
-        <Ionicons
-          name="lock-closed-outline"
-          size={24}
-          color="gray"
-          style={styles.icon}/>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter new password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry />
-      </View>
+    <View style={styles.root}>
+      <AuroraBackground />
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Change Password</Text>
+        <GlassCard style={styles.card} contentStyle={styles.cardContent}>
+          <View style={styles.inputContainer}>
+            <Ionicons
+              name="lock-closed-outline"
+              size={20}
+              color={colors.placeholder}
+              style={styles.icon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Enter new password"
+              placeholderTextColor={colors.placeholder}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry />
+          </View>
 
-      <View style={styles.inputContainer}>
-        <Ionicons
-          name="lock-closed-outline"
-          size={24}
-          color="gray"
-          style={styles.icon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Confirm new password"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          secureTextEntry />
-      </View>
+          <View style={styles.inputContainer}>
+            <Ionicons
+              name="lock-closed-outline"
+              size={20}
+              color={colors.placeholder}
+              style={styles.icon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Confirm new password"
+              placeholderTextColor={colors.placeholder}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry />
+          </View>
 
-      <Button
-        title={loading ? 'Changing Password...' : 'Change Password'}
-        onPress={handleChangePassword}
-        disabled={loading} />
+          <PrimaryButton
+            title={loading ? 'Changing Password…' : 'Change Password'}
+            onPress={handleChangePassword}
+            loading={loading} />
 
-      {message || errorText ? (
-        <Text style={message ? styles.message : styles.errorText}>
-          {message || errorText}
-        </Text>
-      ) : null}
-    </ScrollView>
+          {message || errorText ? (
+            <Text style={message ? styles.message : styles.errorText}>
+              {message || errorText}
+            </Text>
+          ) : null}
+        </GlassCard>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  container: {
+    flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 40,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontFamily: fonts.display,
+    fontSize: 26,
+    color: colors.text,
+    marginBottom: 22,
     textAlign: 'center',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
-    marginBottom: 20,
-    height: 50,
-    paddingLeft: 40,
-    borderRadius: 8,
-    fontSize: 16,
-    paddingVertical: 10,
+  card: {
+    width: '100%',
+    maxWidth: 360,
+  },
+  cardContent: {
+    padding: 24,
   },
   message: {
-    marginTop: 20,
-    color: 'green',
+    marginTop: 16,
+    color: colors.success,
     textAlign: 'center',
-    fontSize: 16,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
   },
   errorText: {
-    fontSize: 16,
-    color: 'red',
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.danger,
     textAlign: 'center',
-    marginTop: 20,
-  },
-  linkTo: {
-    fontSize: 14,
-    color: '#1E90FF',
-    marginTop: 5,
-    textAlign: 'center',
-  },
-  linkText: {
-    fontSize: 14,
-    color: '#555',
-    textAlign: 'center',
-    marginTop: 15,
+    marginTop: 16,
   },
   inputContainer: {
-    marginBottom: 15,
+    marginBottom: 12,
     position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.inputBg,
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
+    borderRadius: radii.md,
+    paddingLeft: 14,
   },
-  icon: {
-    position: 'absolute',
-    left: 10, 
-    top: '50%',
-    transform: [{ translateY: -16 }], 
+  input: {
+    flex: 1,
+    height: 48,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.text,
+    paddingLeft: 8,
+    paddingVertical: 10,
   },
+  icon: {},
 });
 
 export default ChangePassword;

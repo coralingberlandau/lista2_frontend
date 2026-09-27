@@ -1,20 +1,24 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Alert } from 'react-native';
 import axios from 'axios';
 import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from './type';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
+import AuroraBackground from '@/components/AuroraBackground';
+import GlassCard from '@/components/GlassCard';
+import PrimaryButton from '@/components/PrimaryButton';
+import { colors, fonts, radii } from '@/constants/theme';
 
 type NavigationProps = StackNavigationProp<RootStackParamList>;
 
 const ResetPassword: React.FC = () => {
-  const [email, setEmail] = useState<string>(''); 
+  const [email, setEmail] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [message, setMessage] = useState<string>('');
   const [errorText, setErrorText] = useState<string>('');
-  const navigation = useNavigation<NavigationProps>(); 
+  const navigation = useNavigation<NavigationProps>();
   const SERVER = "https://lista-backend-n3la.onrender.com"
 
 
@@ -24,7 +28,7 @@ const ResetPassword: React.FC = () => {
   };
 
   const handleRequestResetLink = async () => {
-    setErrorText(''); 
+    setErrorText('');
 
     if (!email) {
       setErrorText('Please enter your email.');
@@ -45,7 +49,7 @@ const ResetPassword: React.FC = () => {
       });
 
       console.log(response);
-      
+
       setMessage('A reset link has been sent to your email.');
     } catch (error: any) {
       console.error('Error:', error);
@@ -59,113 +63,131 @@ const ResetPassword: React.FC = () => {
   };
 
   const navigateToLogin = () => {
-    navigation.navigate('Login'); 
+    navigation.navigate('Login');
   };
 
   return (
+    <View style={styles.root}>
+      <AuroraBackground />
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Reset Password</Text>
+        <GlassCard style={styles.card} contentStyle={styles.cardContent}>
+          <View style={styles.inputContainer}>
+            <Ionicons
+              name="mail-outline"
+              size={20}
+              color={colors.placeholder}
+              style={styles.icon}
+            />
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              placeholder="Enter your email"
+              placeholderTextColor={colors.placeholder}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={styles.inputText}
+            />
+          </View>
 
-    <ScrollView contentContainerStyle={styles.container}> 
-      <Text style={styles.title}>Reset Password</Text>
-      <View style={styles.inputContainer}>
-        <Ionicons
-          name="mail-outline"
-          size={24}
-          color="gray"
-          style={styles.icon}
-        />
-        <TextInput
-          value={email}
-          onChangeText={setEmail}
-          placeholder="Enter your email"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          style={styles.inputText}
-        />
-      </View>
+          <PrimaryButton
+            title={loading ? 'Sending Reset Link…' : 'Send Reset Link'}
+            onPress={handleRequestResetLink}
+            loading={loading} />
 
-      <Button
-        title={loading ? 'Sending Reset Link...' : 'Send Reset Link'}
-        onPress={handleRequestResetLink}
-        disabled={loading} />
+          {message || errorText ? (
+            <Text style={message ? styles.message : styles.errorText}>
+              {message || errorText}
+            </Text>
+          ) : null}
 
-      {message || errorText ? (
-        <Text style={message ? styles.message : styles.errorText}>
-          {message || errorText}
-        </Text>
-      ) : null}
-
-      <Text style={styles.linkText}>Already have a password?</Text>
-      <TouchableOpacity onPress={navigateToLogin}>
-        <Text style={styles.linkTo}>Click here to login</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          <View style={styles.linkRow}>
+            <Text style={styles.linkText}>Already have a password?</Text>
+            <TouchableOpacity onPress={navigateToLogin}>
+              <Text style={styles.linkTo}>Log in</Text>
+            </TouchableOpacity>
+          </View>
+        </GlassCard>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  container: {
+    flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 40,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontFamily: fonts.display,
+    fontSize: 26,
+    color: colors.text,
+    marginBottom: 22,
     textAlign: 'center',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 20,
+  card: {
+    width: '100%',
+    maxWidth: 360,
+  },
+  cardContent: {
+    padding: 24,
   },
   message: {
-    marginTop: 20,
-    color: 'green',
+    marginTop: 16,
+    color: colors.success,
     textAlign: 'center',
-    fontSize: 16,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
   },
   errorText: {
-    fontSize: 16,
-    color: 'red',
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.danger,
     textAlign: 'center',
-    marginTop: 20,
+    marginTop: 16,
   },
   linkTo: {
-    fontSize: 14,
-    color: '#1E90FF',
-    marginTop: 5,
-    textAlign: 'center',
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.primary,
   },
   linkText: {
-    fontSize: 14,
-    color: '#555',
-    textAlign: 'center',
-    marginTop: 15,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  linkRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 18,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 16,
+    backgroundColor: colors.inputBg,
     borderWidth: 1,
-    borderRadius: 8,
-    borderColor: '#ccc',
-    paddingHorizontal: 10,
+    borderColor: colors.inputBorder,
+    borderRadius: radii.md,
+    paddingHorizontal: 14,
     height: 50,
   },
   inputText: {
     flex: 1,
-    fontSize: 17,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.text,
     paddingLeft: 10,
   },
-  icon: {
-    color: 'gray',
-    top: '50%',
-    transform: [{ translateY: -24 }],
-  },
-
+  icon: {},
 });
 
 export default ResetPassword;

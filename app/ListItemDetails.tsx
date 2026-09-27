@@ -11,6 +11,9 @@ import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 import { ScrollView } from 'react-native-gesture-handler';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import GlassCard from '@/components/GlassCard';
+import PrimaryButton from '@/components/PrimaryButton';
+import { colors, fonts, radii, shadows } from '@/constants/theme';
 
 type ListItemDetailsRouteProp = RouteProp<RootStackParamList, 'ListItemDetails'>;
 
@@ -521,100 +524,114 @@ const ListItemDetails: React.FC = () => {
         style={[styles.background, { width, height }]}
         resizeMode="cover">
         <ScrollView contentContainerStyle={styles.container}>
-          <View style={styles.header}>
+          <GlassCard style={styles.headerCard} contentStyle={styles.headerCardContent}>
             <TextInput
               style={[styles.titleInput, { outline: 'none' }]}
               value={title}
               onChangeText={setTitle}
+              placeholderTextColor={colors.placeholder}
               placeholder="Edit Title" />
-          </View>
-          <FlatList
-            data={items}
-            renderItem={({ item, index }) => {
-              const filterImage = images && images.filter((img) => img.index === index)
-              return (
-                <View style={styles.item}>
-                  <TouchableOpacity onPress={() => handleToggleItem(index)} style={{ marginRight: 10 }}>
-                    <FontAwesome name={item.includes('✔️') ? "check-square-o" : "square-o"} size={25} />
-                  </TouchableOpacity>
+          </GlassCard>
 
-                  {filterImage.length > 0 ? (
-                    <TouchableOpacity
-                      key={filterImage[0].id}
-                      onPress={() => handleShowLargeImage(index)}
-                      style={{ marginRight: 10 }}
-                    >
-                      <Image
-                        source={{ uri: filterImage[0].uri }}
-                        style={{ width: 25, height: 25, borderRadius: 5 }}
-                        onError={() => console.error("Failed to load image")}
+          <GlassCard style={styles.itemsCard} contentStyle={styles.itemsCardContent}>
+            <FlatList
+              data={items}
+              scrollEnabled={false}
+              renderItem={({ item, index }) => {
+                const filterImage = images && images.filter((img) => img.index === index)
+                const isChecked = item.includes('✔️');
+                return (
+                  <View style={styles.item}>
+                    <TouchableOpacity onPress={() => handleToggleItem(index)} style={{ marginRight: 10 }}>
+                      <FontAwesome
+                        name={isChecked ? "check-square-o" : "square-o"}
+                        size={22}
+                        color={isChecked ? colors.primary : colors.placeholder}
                       />
                     </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity onPress={() => handleAddImage(index)} style={{ marginRight: 10 }}>
-                      <FontAwesome name="image" size={25} color="blue" />
-                    </TouchableOpacity>
-                  )}
-                  <Modal
-                    visible={modalVisible}
-                    onRequestClose={handleCloseLargeImage}
-                    animationType="fade"
-                    transparent={true}
-                  >
-                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'white' }}>
-                      <View style={styles.seeImage}>
-                        <TouchableOpacity onPress={handleCloseLargeImage}>
-                          {largeImage ? (
-                            <Image
-                              source={{ uri: largeImage }}
-                              style={{
-                                width: width * 0.9,
-                                height: height * 0.7,
-                                borderRadius: 10,
-                                resizeMode: 'contain',
-                              }}
-                              onError={() => console.error('Failed to load large image')}
-                            />
-                          ) : (
-                            <Text>Image not available</Text>
-                          )}
-                        </TouchableOpacity>
+
+                    {filterImage.length > 0 ? (
+                      <TouchableOpacity
+                        key={filterImage[0].id}
+                        onPress={() => handleShowLargeImage(index)}
+                        style={{ marginRight: 10 }}
+                      >
+                        <Image
+                          source={{ uri: filterImage[0].uri }}
+                          style={{ width: 25, height: 25, borderRadius: 6 }}
+                          onError={() => console.error("Failed to load image")}
+                        />
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity onPress={() => handleAddImage(index)} style={{ marginRight: 10 }}>
+                        <FontAwesome name="image" size={22} color={colors.primaryLight} />
+                      </TouchableOpacity>
+                    )}
+                    <Modal
+                      visible={modalVisible}
+                      onRequestClose={handleCloseLargeImage}
+                      animationType="fade"
+                      transparent={true}
+                    >
+                      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(38,34,59,0.85)' }}>
+                        <View style={styles.seeImage}>
+                          <TouchableOpacity onPress={handleCloseLargeImage}>
+                            {largeImage ? (
+                              <Image
+                                source={{ uri: largeImage }}
+                                style={{
+                                  width: width * 0.9,
+                                  height: height * 0.7,
+                                  borderRadius: 10,
+                                  resizeMode: 'contain',
+                                }}
+                                onError={() => console.error('Failed to load large image')}
+                              />
+                            ) : (
+                              <Text>Image not available</Text>
+                            )}
+                          </TouchableOpacity>
+                        </View>
                       </View>
-                    </View>
-                  </Modal>
-                  <TouchableOpacity onPress={() => handleRemoveItem(index)} style={{ marginRight: 10 }}>
-                    <AntDesign name="delete" size={25} color="red" />
-                  </TouchableOpacity>
-                  <TextInput
-                    style={[
-                      styles.textArea,
-                      {
-                        outline: 'none',
-                        textDecorationLine: item.includes('✔️') ? 'line-through' : 'none',
-                      },
-                    ]}
-                    placeholder="Write here..."
-                    multiline={false}
-                    value={item}
-                    onChangeText={(text) => handleItemChange(text, index)}
-                  />
-                </View>
-              )
-            }}
-            keyExtractor={(_, index) => index.toString()} />
+                    </Modal>
+                    <TouchableOpacity onPress={() => handleRemoveItem(index)} style={{ marginRight: 10 }}>
+                      <AntDesign name="delete" size={20} color={colors.danger} />
+                    </TouchableOpacity>
+                    <TextInput
+                      style={[
+                        styles.textArea,
+                        {
+                          outline: 'none',
+                          textDecorationLine: isChecked ? 'line-through' : 'none',
+                        },
+                      ]}
+                      placeholder="Write here..."
+                      placeholderTextColor={colors.placeholder}
+                      multiline={false}
+                      value={item}
+                      onChangeText={(text) => handleItemChange(text, index)}
+                    />
+                  </View>
+                )
+              }}
+              keyExtractor={(_, index) => index.toString()} />
+          </GlassCard>
+
           <View style={styles.iconRowContainer}>
             {isUpdateMode && (
               <TouchableOpacity style={styles.iconContainer} onPress={fetchRecommendations}>
-                <FontAwesome5 name="lightbulb" size={25} color="purple" />
+                <View style={styles.iconCircle}>
+                  <FontAwesome5 name="lightbulb" size={17} color={colors.primary} />
+                </View>
                 <Text style={styles.iconLabel}>AI</Text>
               </TouchableOpacity>
             )}
             {isAIModalVisible && (
               <View style={styles.overlay}>
-                <View style={styles.modalContainer}>
+                <GlassCard style={styles.modalCard} contentStyle={styles.modalContainer} tint={colors.glassBgStrong}>
                   <Text style={styles.modalTitle}>AI Recommendations</Text>
                   {loading ? (
-                    <ActivityIndicator size="large" color="#0000ff" />
+                    <ActivityIndicator size="large" color={colors.primary} />
                   ) : (
                     <View style={styles.recommendationsContainer}>
                       {recommendations.length > 0 ? (
@@ -623,7 +640,7 @@ const ListItemDetails: React.FC = () => {
                           keyExtractor={(item, index) => index.toString()}
                           renderItem={({ item }) => (
                             <View style={styles.recommendationItem}>
-                              <Text>{item}</Text>
+                              <Text style={styles.recommendationText}>{item}</Text>
                             </View>
                           )}
                         />
@@ -643,18 +660,20 @@ const ListItemDetails: React.FC = () => {
                   >
                     <Text style={styles.closeButtonText}>Close</Text>
                   </TouchableOpacity>
-                </View>
+                </GlassCard>
               </View>
             )}
             {isUpdateMode && permissionType === 'full_access' && (
               <TouchableOpacity style={styles.iconContainer} onPress={handleSharePress}>
-                <Ionicons name="share-outline" size={25} color="black" />
+                <View style={styles.iconCircle}>
+                  <Ionicons name="share-outline" size={18} color={colors.text} />
+                </View>
                 <Text style={styles.iconLabel}>Share</Text>
               </TouchableOpacity>
             )}
             {isModalVisible && (
               <View style={styles.overlay}>
-                <View style={styles.modalContainer}>
+                <GlassCard style={styles.modalCard} contentStyle={styles.modalContainer} tint={colors.glassBgStrong}>
                   <Text style={styles.modalTitle}>Select Permission</Text>
                   <View style={styles.pickerContainer}>
                     <Picker
@@ -668,18 +687,12 @@ const ListItemDetails: React.FC = () => {
                   </View>
                   <TextInput
                     placeholder="Enter a email"
+                    placeholderTextColor={colors.placeholder}
                     value={shareValue}
                     onChangeText={setShareValue}
                     style={styles.input}
                   />
-                  <TouchableOpacity
-                    style={styles.confirmButton}
-                    onPress={() => {
-                      handleConfirmShare();
-                    }}
-                  >
-                    <Text style={styles.confirmButtonText}>Confirm Share</Text>
-                  </TouchableOpacity>
+                  <PrimaryButton title="Confirm Share" onPress={handleConfirmShare} style={styles.confirmButton} />
                   <TouchableOpacity
                     style={styles.closeButton}
                     onPress={() => {
@@ -688,25 +701,29 @@ const ListItemDetails: React.FC = () => {
                   >
                     <Text style={styles.closeButtonText}>Close</Text>
                   </TouchableOpacity>
-                </View>
+                </GlassCard>
               </View>
             )}
             {isUpdateMode && permissionType === 'full_access' && (
               <TouchableOpacity style={styles.iconContainer} onPress={() => handleDeleteItem()}>
-                <AntDesign name="delete" size={25} color="black" />
+                <View style={styles.iconCircle}>
+                  <AntDesign name="delete" size={17} color={colors.danger} />
+                </View>
                 <Text style={styles.iconLabel}>Delete</Text>
               </TouchableOpacity>
             )}
           </View>
           {permissionType === 'full_access' && (
             <TouchableOpacity style={styles.addItemButton} onPress={AddItemToList}>
-              <Text style={styles.addItemButtonText}>Add Item</Text>
+              <Text style={styles.addItemButtonText}>+ Add Item</Text>
             </TouchableOpacity>
           )}
           {permissionType === 'full_access' && (
-            <TouchableOpacity style={styles.updateButton} onPress={isUpdateMode ? handleUpdateList : handleAddItem}>
-              <Text style={styles.updateButtonText}>{isUpdateMode ? 'Update List' : "Create List"}</Text>
-            </TouchableOpacity>
+            <PrimaryButton
+              title={isUpdateMode ? 'Update List' : 'Create List'}
+              onPress={isUpdateMode ? handleUpdateList : handleAddItem}
+              style={styles.updateButton}
+            />
           )}
         </ScrollView>
       </ImageBackground>
@@ -720,7 +737,15 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    padding: 20
+    padding: 20,
+    paddingTop: 52,
+  },
+  headerCard: {
+    marginBottom: 14,
+  },
+  headerCardContent: {
+    paddingHorizontal: 18,
+    paddingVertical: 6,
   },
   header: {
     flexDirection: 'row',
@@ -729,65 +754,65 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   titleInput: {
-    width: '90%',
-    fontSize: 24,
-    fontWeight: 'bold',
-    flex: 1,
-    marginRight: 10,
-    padding: 5,
+    width: '100%',
+    fontSize: 22,
+    fontFamily: fonts.display,
+    color: colors.text,
+    paddingVertical: 10,
+  },
+  itemsCard: {
+    marginBottom: 6,
+  },
+  itemsCardContent: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
   item: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
   },
   textArea: {
     flex: 2,
     borderWidth: 0,
     paddingLeft: 10,
-    fontSize: 18,
+    fontSize: 15,
+    fontFamily: fonts.body,
+    color: colors.text,
   },
   addItemButton: {
-    backgroundColor: "#39B8D4",
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: colors.primaryLight,
     paddingHorizontal: 10,
-    paddingVertical: 10,
-    borderRadius: 5,
+    paddingVertical: 13,
+    borderRadius: radii.md,
     alignItems: 'center',
     alignSelf: 'center',
-    marginVertical: 20,
-    width: '80%',
+    marginVertical: 16,
+    width: '100%',
   },
   addItemButtonText: {
-    color: 'white',
-    fontSize: 18,
+    color: colors.primary,
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
   },
   updateButton: {
-    backgroundColor: '#4CAF50',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  updateButtonText: {
-    color: 'white',
-    fontSize: 18,
+    marginVertical: 10,
+    marginBottom: 30,
   },
   modalTitle: {
     marginBottom: 15,
-    color: '#333',
+    color: colors.text,
+    fontFamily: fonts.display,
     fontSize: 20,
-    fontWeight: 'bold',
     textAlign: 'center',
   },
   confirmButton: {
-    backgroundColor: '#4CAF50',
-    padding: 10,
-    borderRadius: 8,
-    width: '100%',
-    alignItems: 'center',
     marginTop: 20,
-    paddingVertical: 12,
     marginBottom: 10,
   },
   iconRowContainer: {
@@ -804,42 +829,54 @@ const styles = StyleSheet.create({
   iconContainer: {
     flexDirection: 'column',
     alignItems: 'center',
-    marginHorizontal: 10,
+    marginHorizontal: 8,
+  },
+  iconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    ...shadows.soft,
   },
   iconLabel: {
-    fontSize: 12,
-    color: 'black',
+    fontSize: 11,
+    fontFamily: fonts.bodyMedium,
+    color: colors.text,
     textAlign: 'center',
+    marginTop: 4,
   },
+  modalCard: {},
   modalContainer: {
-    backgroundColor: 'white',
     borderRadius: 10,
     padding: 20,
     margin: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 10,
   },
   pickerContainer: {
-    backgroundColor: '#f0f0f0',
-    borderRadius: 5,
+    backgroundColor: colors.inputBg,
+    borderRadius: radii.sm,
     marginBottom: 15,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
   },
   picker: {
     height: 50,
     width: '100%',
   },
   input: {
-    height: 45,
-    borderColor: '#ddd',
+    height: 48,
+    borderColor: colors.inputBorder,
     borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 10,
+    borderRadius: radii.sm,
+    paddingHorizontal: 14,
     marginBottom: 20,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: colors.inputBg,
+    fontFamily: fonts.body,
+    color: colors.text,
   },
   confirmButtonText: {
     color: 'white',
@@ -847,17 +884,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   closeButton: {
-    backgroundColor: '#f44336',
+    backgroundColor: 'rgba(226,83,107,0.12)',
     paddingVertical: 10,
-    borderRadius: 5,
+    borderRadius: radii.sm,
     alignItems: 'center',
+    marginTop: 10,
   },
   closeButtonText: {
-    color: 'white',
+    color: colors.danger,
+    fontFamily: fonts.bodySemiBold,
     fontSize: 14,
   },
   overlay: {
-    position: 'fixed',
+    position: 'fixed' as any,
     top: 0,
     left: 0,
     right: 0,
@@ -885,21 +924,26 @@ const styles = StyleSheet.create({
   recommendationItem: {
     padding: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
+    borderBottomColor: colors.divider,
+  },
+  recommendationText: {
+    fontFamily: fonts.body,
+    color: colors.text,
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.divider,
     maxHeight: 150,
     flex: 1,
   },
   emptyText: {
-    color: '#888',
+    color: colors.textMuted,
+    fontFamily: fonts.body,
     fontStyle: 'italic',
   },
   separator: {

@@ -1,5 +1,5 @@
 import React, { Dispatch, SetStateAction, useState } from 'react';
-import { View, Text, Button, TouchableOpacity, StyleSheet, Dimensions, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Input from '@/components/Input';
@@ -9,14 +9,19 @@ import { jwtDecode } from 'jwt-decode';
 import { JwtPayload, RootStackParamList } from './type';
 import { Ionicons } from '@expo/vector-icons';
 import { ScrollView } from 'react-native-gesture-handler';
+import AuroraBackground from '@/components/AuroraBackground';
+import GlassCard from '@/components/GlassCard';
+import PrimaryButton from '@/components/PrimaryButton';
+import { colors, fonts, radii } from '@/constants/theme';
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
-const { width } = Dimensions.get('window');
 
 const Login: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> }> = ({ setIsLoggedIn }) => {
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [errorText, setErrorText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { width } = useWindowDimensions();
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const SERVER = "https://lista-backend-n3la.onrender.com"
 
@@ -29,6 +34,7 @@ const Login: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> 
     }
 
     if (username && password) {
+      setLoading(true);
       try {
         const response = await axios.post(`${SERVER}/login/`, {
           username,
@@ -65,6 +71,8 @@ const Login: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> 
         } else {
           setErrorText('Something went wrong. Please try again.');
         }
+      } finally {
+        setLoading(false);
       }
     };
   }
@@ -78,119 +86,181 @@ const Login: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> 
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <View style={styles.root}>
+      <AuroraBackground />
+      <ScrollView contentContainerStyle={styles.container}>
 
-      <View style={styles.logoContainer}>
-        <Image source={require('../assets/images/lista.png')} style={styles.logo} />
-      </View>
+        <View style={styles.logoContainer}>
+          <Image source={require('../assets/images/lista.png')} style={[styles.logo, { width: width * 0.24, height: width * 0.24 }]} />
+        </View>
 
-      <Text style={styles.title}>Login</Text>
-      <View style={styles.inputContainer}>
-        <Ionicons
-          name="person-outline"
-          size={24}
-          color="gray"
-          style={styles.icon}
-        />
-        <Input
-          value={username}
-          onChangeText={setUsername}
-          placeholder="Enter your username"
-          autoCapitalize="none"
-          style={styles.input}
-        />
-      </View>
+        <Text style={styles.title}>Lista</Text>
+        <Text style={styles.tagline}>Your calm space for lists that matter</Text>
 
-      <View style={styles.inputContainer}>
-        <Ionicons
-          name="lock-closed-outline"
-          size={24}
-          color="gray"
-          style={styles.icon}
-        />
-        <Input
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Enter your password"
-          secureTextEntry
-          autoCapitalize="none"
-          style={styles.input}
-        />
-      </View>
+        <GlassCard style={styles.card} contentStyle={styles.cardContent}>
+          <Text style={styles.cardTitle}>Welcome back</Text>
+          <Text style={styles.cardSubtitle}>Log in to keep your lists in sync</Text>
 
-      <Button title="Login" onPress={handleLogin} />
-      <Text style={styles.errorText}>{errorText}</Text>
-      <View style={styles.registerContainer}>
-        <Text style={styles.registerText}>Not registered?</Text>
-        <TouchableOpacity onPress={navigateToRegister}>
-          <Text style={styles.linkTo}>Click here to sign up</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={navigateToResetPassword}>
-          <Text style={styles.linkTo}>Forgot password?</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+          <View style={styles.inputContainer}>
+            <Ionicons
+              name="person-outline"
+              size={20}
+              color={colors.placeholder}
+              style={styles.icon}
+            />
+            <Input
+              value={username}
+              onChangeText={setUsername}
+              placeholder="Enter your username"
+              autoCapitalize="none"
+              placeholderTextColor={colors.placeholder}
+              style={styles.input}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Ionicons
+              name="lock-closed-outline"
+              size={20}
+              color={colors.placeholder}
+              style={styles.icon}
+            />
+            <Input
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Enter your password"
+              secureTextEntry
+              autoCapitalize="none"
+              placeholderTextColor={colors.placeholder}
+              style={styles.input}
+            />
+          </View>
+
+          <PrimaryButton title="Log In" onPress={handleLogin} loading={loading} style={styles.button} />
+          {!!errorText && <Text style={styles.errorText}>{errorText}</Text>}
+
+          <View style={styles.registerContainer}>
+            <Text style={styles.registerText}>Not registered?</Text>
+            <TouchableOpacity onPress={navigateToRegister}>
+              <Text style={styles.linkTo}>Sign up</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity onPress={navigateToResetPassword}>
+            <Text style={styles.forgotLink}>Forgot password?</Text>
+          </TouchableOpacity>
+        </GlassCard>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  container: {
+    flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 48,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontFamily: fonts.displayItalic,
+    fontSize: 34,
+    color: colors.text,
+    marginTop: 14,
+  },
+  tagline: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.textMuted,
+    marginTop: 4,
+    marginBottom: 30,
     textAlign: 'center',
+  },
+  card: {
+    width: '100%',
+    maxWidth: 360,
+  },
+  cardContent: {
+    padding: 24,
+  },
+  cardTitle: {
+    fontFamily: fonts.display,
+    fontSize: 20,
+    color: colors.text,
+  },
+  cardSubtitle: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 4,
+    marginBottom: 22,
   },
   registerContainer: {
-    marginTop: 20,
+    marginTop: 18,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
   },
   registerText: {
-    fontSize: 14,
-    color: '#555',
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textMuted,
   },
   linkTo: {
-    fontSize: 14,
-    color: '#1E90FF',
-    marginTop: 5,
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.primary,
+  },
+  forgotLink: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.placeholder,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+    marginTop: 8,
   },
   errorText: {
-    fontSize: 16,
-    color: 'red',
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.danger,
     textAlign: 'center',
-    marginTop: 20,
+    marginTop: 14,
   },
   inputContainer: {
-    marginBottom: 15,
+    marginBottom: 12,
     position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.inputBg,
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
+    borderRadius: radii.md,
+    paddingLeft: 14,
   },
   input: {
-    height: 50,
-    paddingLeft: 40,
-    borderWidth: 1,
-    borderRadius: 8,
-    borderColor: '#ccc',
-    fontSize: 16,
+    flex: 1,
+    height: 48,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.text,
+    paddingLeft: 8,
     paddingVertical: 10,
   },
-  icon: {
-    position: 'absolute',
-    left: 10,
-    top: '50%',
-    transform: [{ translateY: -16 }],
+  icon: {},
+  button: {
+    marginTop: 8,
   },
   logoContainer: {
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    marginBottom: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logo: {
-    width: width * 0.3,       
-    height: width * 0.3,    
+    borderRadius: radii.md,
   },
 });
 

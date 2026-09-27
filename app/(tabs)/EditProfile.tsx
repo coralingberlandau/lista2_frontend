@@ -1,5 +1,5 @@
 import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
-import { View, Text, Button, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Input from '@/components/Input';
@@ -7,6 +7,10 @@ import axios from 'axios';
 import Toast from 'react-native-toast-message';
 import { Ionicons } from '@expo/vector-icons';
 import { ScrollView } from 'react-native-gesture-handler';
+import AuroraBackground from '@/components/AuroraBackground';
+import GlassCard from '@/components/GlassCard';
+import PrimaryButton from '@/components/PrimaryButton';
+import { colors, fonts, radii } from '@/constants/theme';
 
 type EditProfileProps = {
     setIsLoggedIn: Dispatch<SetStateAction<boolean | null>>;
@@ -22,6 +26,7 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
     const navigation = useNavigation();
     const [userId, setUserId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [saving, setSaving] = useState(false);
     const SERVER = "https://lista-backend-n3la.onrender.com"
 
 
@@ -74,8 +79,9 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
             setEmailError('The email is invalid. Please enter a valid email address.');
             return;
         }
-        
+
         if (userId) {
+            setSaving(true);
             try {
                 const response = await axios.patch(`${SERVER}/user/${userId}/`, {
                     username,
@@ -107,6 +113,8 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
                 } else {
                     setError('An error occurred. Please try again.');
                 }
+            } finally {
+                setSaving(false);
             }
         } else {
             setError('User ID not found.');
@@ -115,127 +123,135 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
     };
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.title}>Edit Profile</Text>
-            <View style={styles.inputContainer}>
-                <Ionicons
-                    name="person-outline"
-                    size={24}
-                    color="gray"
-                    style={styles.icon}
-                />
-                <Input
-                    value={username}
-                    onChangeText={setUsername}
-                    placeholder="Username"
-                    autoCapitalize="none"
-                    style={styles.input}
-                />
-            </View>
+        <View style={styles.root}>
+            <AuroraBackground />
+            <ScrollView contentContainerStyle={styles.container}>
+                <Text style={styles.title}>Edit Profile</Text>
 
-            <View style={styles.inputContainer}>
-                <Ionicons
-                    name="person-outline"
-                    size={24}
-                    color="gray"
-                    style={styles.icon}
-                />
-                <Input
-                    value={firstName}
-                    onChangeText={setFirstName}
-                    placeholder="First Name"
-                    style={styles.input}
-                />
-            </View>
+                <GlassCard style={styles.card} contentStyle={styles.cardContent}>
+                    <View style={styles.inputContainer}>
+                        <Ionicons name="person-outline" size={20} color={colors.placeholder} style={styles.icon} />
+                        <Input
+                            value={username}
+                            onChangeText={setUsername}
+                            placeholder="Username"
+                            autoCapitalize="none"
+                            placeholderTextColor={colors.placeholder}
+                            style={styles.input}
+                        />
+                    </View>
 
-            <View style={styles.inputContainer}>
-                <Ionicons
-                    name="person-outline"
-                    size={24}
-                    color="gray"
-                    style={styles.icon}
-                />
-                <Input
-                    value={lastName}
-                    onChangeText={setLastName}
-                    placeholder="Last Name"
-                    style={styles.input}
-                />
-            </View>
+                    <View style={styles.inputContainer}>
+                        <Ionicons name="person-outline" size={20} color={colors.placeholder} style={styles.icon} />
+                        <Input
+                            value={firstName}
+                            onChangeText={setFirstName}
+                            placeholder="First Name"
+                            placeholderTextColor={colors.placeholder}
+                            style={styles.input}
+                        />
+                    </View>
 
-            <View style={styles.inputContainer}>
-                <Ionicons
-                    name="mail-outline"
-                    size={24}
-                    color="gray"
-                    style={styles.icon}
-                />
-                <Input
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="Email"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    style={styles.input}
-                />
-            </View>
-            {isLoading ? (
-                <Text style={styles.loadingText}> ⏳ Loading user data...</Text>
-            ) : (
-                <Button title="Save Changes" onPress={handleSaveChanges} />
-            )}
+                    <View style={styles.inputContainer}>
+                        <Ionicons name="person-outline" size={20} color={colors.placeholder} style={styles.icon} />
+                        <Input
+                            value={lastName}
+                            onChangeText={setLastName}
+                            placeholder="Last Name"
+                            placeholderTextColor={colors.placeholder}
+                            style={styles.input}
+                        />
+                    </View>
 
-            {(error || emailError) && (
-                <Text style={styles.errorText}>
-                    {error || emailError}
-                </Text>
-            )}
-        </ScrollView>
+                    <View style={styles.inputContainer}>
+                        <Ionicons name="mail-outline" size={20} color={colors.placeholder} style={styles.icon} />
+                        <Input
+                            value={email}
+                            onChangeText={setEmail}
+                            placeholder="Email"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            placeholderTextColor={colors.placeholder}
+                            style={styles.input}
+                        />
+                    </View>
+                    {isLoading ? (
+                        <Text style={styles.loadingText}>Loading user data…</Text>
+                    ) : (
+                        <PrimaryButton title="Save Changes" onPress={handleSaveChanges} loading={saving} />
+                    )}
+
+                    {(error || emailError) && (
+                        <Text style={styles.errorText}>
+                            {error || emailError}
+                        </Text>
+                    )}
+                </GlassCard>
+            </ScrollView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
+    root: {
         flex: 1,
+        backgroundColor: colors.background,
+    },
+    container: {
+        flexGrow: 1,
         justifyContent: 'center',
-        paddingHorizontal: 20,
+        alignItems: 'center',
+        paddingHorizontal: 24,
+        paddingVertical: 40,
     },
     title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
+        fontFamily: fonts.display,
+        fontSize: 26,
+        color: colors.text,
+        marginBottom: 22,
         textAlign: 'center',
+    },
+    card: {
+        width: '100%',
+        maxWidth: 360,
+    },
+    cardContent: {
+        padding: 24,
     },
     errorText: {
-        fontSize: 16,
-        color: 'red',
+        fontFamily: fonts.bodyMedium,
+        fontSize: 13,
+        color: colors.danger,
         textAlign: 'center',
-        marginTop: 20,
+        marginTop: 16,
     },
     inputContainer: {
-        marginBottom: 15,
+        marginBottom: 12,
         position: 'relative',
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.inputBg,
+        borderWidth: 1,
+        borderColor: colors.inputBorder,
+        borderRadius: radii.md,
+        paddingLeft: 14,
     },
     input: {
-        height: 50,
-        paddingLeft: 40,
-        borderWidth: 1,
-        borderRadius: 8,
-        borderColor: '#ccc',
-        fontSize: 16,
+        flex: 1,
+        height: 48,
+        fontFamily: fonts.body,
+        fontSize: 14,
+        color: colors.text,
+        paddingLeft: 8,
         paddingVertical: 10,
     },
-    icon: {
-        position: 'absolute',
-        left: 10,
-        top: '50%',
-        transform: [{ translateY: -16 }],
-    },
+    icon: {},
     loadingText: {
-        fontSize: 16,
-        color: 'gray',
+        fontFamily: fonts.body,
+        fontSize: 14,
+        color: colors.textMuted,
         textAlign: 'center',
-        marginTop: 20,
+        marginTop: 8,
     },
 });
 

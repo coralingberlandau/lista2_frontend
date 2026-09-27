@@ -1,8 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerRootComponent } from 'expo';
+import * as SplashScreen from 'expo-splash-screen';
+import { useFonts, InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif';
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
 import { TabBarIcon } from '@/components/navigation/TabBarIcon';
 import Toast from 'react-native-toast-message';
 import Home from './(tabs)/Home';
@@ -15,11 +24,39 @@ import ResetPassword from './ResetPassword';
 import EditProfile from './(tabs)/EditProfile';
 import ChangePassword from './ChangePassword';
 import Welcome from './Welcome';
+import { colors, fonts } from '@/constants/theme';
 
 const Tab = createBottomTabNavigator<RootStackParamList>();
 
+SplashScreen.preventAutoHideAsync();
+
+const navigationTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: colors.background,
+    primary: colors.primary,
+    card: colors.background,
+  },
+};
+
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [fontsLoaded] = useFonts({
+    InstrumentSerif_400Regular,
+    InstrumentSerif_400Regular_Italic,
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
 
   useEffect(() => {
     const checkLogin = async () => {
@@ -44,10 +81,27 @@ const App: React.FC = () => {
     },
   };
 
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
-    <NavigationContainer linking={linking}>
+    <NavigationContainer linking={linking} theme={navigationTheme}>
       {isLoggedIn ? (
-        <Tab.Navigator>
+        <Tab.Navigator
+          screenOptions={{
+            tabBarActiveTintColor: colors.primary,
+            tabBarInactiveTintColor: colors.placeholder,
+            tabBarStyle: {
+              backgroundColor: colors.background,
+              borderTopColor: colors.glassBorder,
+            },
+            tabBarLabelStyle: {
+              fontFamily: fonts.bodyMedium,
+              fontSize: 11,
+            },
+          }}
+        >
           <Tab.Screen
             name="Home"
             options={{

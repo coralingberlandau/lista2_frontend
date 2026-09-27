@@ -10,6 +10,9 @@ import { Image } from 'react-native';
 import axios from 'axios';
 import { FlatList, ScrollView } from 'react-native-gesture-handler';
 import _ from 'lodash';
+import AuroraBackground from '@/components/AuroraBackground';
+import GlassCard from '@/components/GlassCard';
+import { colors, fonts, radii } from '@/constants/theme';
 
 type SettingsProps = {
   setIsLoggedIn: React.Dispatch<React.SetStateAction<boolean | null>>;
@@ -21,8 +24,8 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
   const version = "1.0.0";
   const supportContact = "listaassistance@gmail.com";
   const navigation = useNavigation<EditProfileScreenNavigationProp>();
-  const [selectedImage, setSelectedImage] = useState<number | null>(null); 
-  const SERVER = "https://lista-backend-n3la.onrender.com" 
+  const [selectedImage, setSelectedImage] = useState<number | null>(null);
+  const SERVER = "https://lista-backend-n3la.onrender.com"
 
 
   const navigateToEditProfile = () => {
@@ -80,7 +83,7 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
       const response = await axios.post(
         `${SERVER}/customizations/`,
         {
-          background_image_id: imageId || 0, 
+          background_image_id: imageId || 0,
         },
         {
           headers: {
@@ -108,187 +111,200 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
 
   const handleBackgroundChange = async (imageId: number) => {
     setSelectedImage(imageId);
-    debounceSaveToServer(imageId); 
+    debounceSaveToServer(imageId);
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>{appName}</Text>
-      <Text style={styles.version}>Version: {version}</Text>
-      <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-        <AntDesign name="logout" size={20} color="red" />
-        <Text style={styles.iconLabelLogout}>Logout</Text>
-      </TouchableOpacity>
-      <Text style={styles.sectionTitle}>Support</Text>
-      <Text style={styles.supportInfo}>For assistance, please contact Lista support:</Text>
-      <TouchableOpacity onPress={handleEmailPress}>
-        <Text style={styles.supportContact}>{supportContact}</Text>
-      </TouchableOpacity>
-      <Text style={styles.notification}>If you need any assistance, feel free to reach out!</Text>
-      <Text style={styles.inspirationText}>Keep achieving great things with Lista! </Text>
-      <Text style={styles.inspirationText}>We’re here to make your life easier and more organized. 😊  </Text>
-      <TouchableOpacity onPress={navigateToEditProfile} style={styles.editProfileButton}>
-        <Ionicons name="pencil-outline" size={30} color="green" />
-        <Text style={styles.iconLabel}>Edit Profile</Text>
-      </TouchableOpacity>
-      <Ionicons name="color-palette-outline" size={33} color="black" style={styles.icon} />
-      <Text style={[styles.iconLabel]}>Background</Text>
-      <View style={styles.backgroundPickerContainer}>
-        <FlatList
-          data={backgroundImages} 
-          renderItem={({ item }: { item: BackgroundImage }) => (
-            <TouchableOpacity
-              onPress={() => handleBackgroundChange(item.id)}
-              style={[
-                styles.backgroundImageOption,
-                { margin: 10 },
-                selectedImage === item.id && { borderColor: 'blue', borderWidth: 2 },
-              ]}
-            >
-              <Image
-                source={item.url}
-                style={styles.backgroundImage}
-                resizeMode="cover"
-              />
-            </TouchableOpacity>
-          )}
-          keyExtractor={(_, index) => index.toString()}
-          numColumns={3} 
-        />
-      </View>
-      <View style={styles.footerContainer}>
-        <Text style={styles.footerText}>
-          © All rights reserved to Coral Landau, Founder of Lista.
-        </Text>
-      </View>
-    </ScrollView>
+    <View style={styles.root}>
+      <AuroraBackground />
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>{appName}</Text>
+            <Text style={styles.version}>Version {version}</Text>
+          </View>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+            <AntDesign name="logout" size={17} color={colors.danger} />
+          </TouchableOpacity>
+        </View>
+
+        <GlassCard style={styles.card} contentStyle={styles.cardContent}>
+          <Text style={styles.sectionTitle}>Support</Text>
+          <Text style={styles.supportInfo}>For assistance, please contact Lista support:</Text>
+          <TouchableOpacity onPress={handleEmailPress}>
+            <Text style={styles.supportContact}>{supportContact}</Text>
+          </TouchableOpacity>
+          <Text style={styles.inspirationText}>Keep achieving great things with Lista.</Text>
+          <Text style={styles.inspirationText}>We're here to make your life easier and more organized. </Text>
+        </GlassCard>
+
+        <TouchableOpacity onPress={navigateToEditProfile} style={styles.editProfileButton}>
+          <Ionicons name="pencil-outline" size={20} color={colors.primary} />
+          <Text style={styles.editProfileText}>Edit Profile</Text>
+        </TouchableOpacity>
+
+        <View style={styles.backgroundHeader}>
+          <Ionicons name="color-palette-outline" size={20} color={colors.text} />
+          <Text style={styles.backgroundTitle}>Background</Text>
+        </View>
+        <GlassCard style={styles.card} contentStyle={styles.backgroundPickerContainer}>
+          <FlatList
+            data={backgroundImages}
+            scrollEnabled={false}
+            renderItem={({ item }: { item: BackgroundImage }) => (
+              <TouchableOpacity
+                onPress={() => handleBackgroundChange(item.id)}
+                style={[
+                  styles.backgroundImageOption,
+                  selectedImage === item.id && styles.selectedBackgroundImage,
+                ]}
+              >
+                <Image
+                  source={item.url}
+                  style={styles.backgroundImage}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            )}
+            keyExtractor={(_, index) => index.toString()}
+            numColumns={4}
+          />
+        </GlassCard>
+
+        <View style={styles.footerContainer}>
+          <Text style={styles.footerText}>
+            © All rights reserved to Coral Landau, Founder of Lista.
+          </Text>
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
-    flexGrow: 1,  
-    justifyContent: 'flex-start',
+    flexGrow: 1,
+    padding: 20,
+    paddingTop: 56,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: 15,
-    backgroundColor: '#f5f5f5',
-    position: 'relative', 
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  version: {
-    fontSize: 18,
     marginBottom: 20,
   },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginVertical: 10,
+  title: {
+    fontFamily: fonts.display,
+    fontSize: 26,
+    color: colors.text,
   },
-  settingOption: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+  version: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
+  card: {
     width: '100%',
+    marginBottom: 18,
   },
-  settingText: {
-    fontSize: 18,
+  cardContent: {
+    padding: 18,
+  },
+  sectionTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 16,
+    color: colors.text,
+    marginBottom: 8,
   },
   supportInfo: {
-    fontSize: 16,
-    marginVertical: 10,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textMuted,
+    marginBottom: 8,
   },
   supportContact: {
-    fontSize: 18,
-    color: 'blue',
-    textDecorationLine: 'underline',
-    marginVertical: 10,
-  },
-  notification: {
-    fontSize: 16,
-    marginVertical: 15,
-  },
-  footerText: {
+    fontFamily: fonts.bodySemiBold,
     fontSize: 14,
-    color: '#777',
-    textAlign: 'center',
-  },
-  footerContainer: {
-    alignItems: 'center', 
-    paddingVertical: 20,
+    color: colors.primary,
+    marginBottom: 12,
   },
   inspirationText: {
-    fontSize: 15,
-    color: '#555',
-    textAlign: 'center',
-    fontStyle: 'italic',
-    marginVertical: 15,
+    fontFamily: fonts.displayItalic,
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 4,
   },
   logoutButton: {
-    backgroundColor: '#f5f5f5',
-    padding: 10,
-    borderRadius: 50,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.glassBgStrong,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    zIndex: 1,
-  },
-  iconLabel: {
-    color: 'black',
-    marginTop: 5,
-    fontSize: 16,
-  },
-  iconLabelLogout: {
-    color: 'black',
-    marginTop: 5,
-    fontSize: 14,
   },
   editProfileButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f2f2f2',
-    padding: 10,
-    borderRadius: 5,
-    marginVertical: 10,
-    borderColor: '#ccc',
+    backgroundColor: colors.glassBgStrong,
+    padding: 14,
+    borderRadius: radii.md,
+    marginBottom: 20,
+    borderColor: colors.glassBorder,
     borderWidth: 1,
+    gap: 8,
+  },
+  editProfileText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: colors.text,
+  },
+  backgroundHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  backgroundTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.text,
   },
   backgroundPickerContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 20,
+    padding: 12,
   },
   backgroundImageOption: {
-    margin: 5,
-    width: 80,
-    height: 80,
-    borderRadius: 10,
+    margin: 4,
+    width: 68,
+    height: 68,
+    borderRadius: radii.sm,
     overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
   backgroundImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 10,
-  },
-  touchable: {
-    alignItems: 'center',
-    marginVertical: 10,
-    flexDirection: 'row',
-  },
-  boldText: {
-    fontWeight: 'bold',
+    borderRadius: radii.sm - 2,
   },
   selectedBackgroundImage: {
-    borderColor: 'blue',
-    borderWidth: 4,
+    borderColor: colors.primary,
   },
-  icon: {
-    marginRight: 10,
+  footerContainer: {
+    alignItems: 'center',
+    paddingVertical: 24,
+  },
+  footerText: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: 'center',
   },
 });
 

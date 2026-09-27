@@ -1,5 +1,5 @@
 import React, { Dispatch, SetStateAction, useState } from 'react';
-import { View, Text, Button, TouchableOpacity, StyleSheet, Alert, Image, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Image, useWindowDimensions } from 'react-native';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Input from '@/components/Input';
@@ -10,9 +10,12 @@ import { jwtDecode } from 'jwt-decode';
 import Toast from 'react-native-toast-message';
 import { Ionicons } from '@expo/vector-icons';
 import { ScrollView } from 'react-native-gesture-handler';
+import AuroraBackground from '@/components/AuroraBackground';
+import GlassCard from '@/components/GlassCard';
+import PrimaryButton from '@/components/PrimaryButton';
+import { colors, fonts, radii } from '@/constants/theme';
 
 type RegisterScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Register'>;
-const { width} = Dimensions.get('window');
 
 
 const Register: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> }> = ({ setIsLoggedIn }) => {
@@ -21,9 +24,11 @@ const Register: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null
   const [lastName, setLastName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
+  const { width } = useWindowDimensions();
   const navigation = useNavigation<RegisterScreenNavigationProp>();
   const [error, setError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const SERVER = "https://lista-backend-n3la.onrender.com"
 
 
@@ -55,6 +60,7 @@ const Register: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null
     }
 
     if (username && firstName && lastName && email && password) {
+      setLoading(true);
       try {
         const response = await axios.post(`${SERVER}/register/`, {
           username,
@@ -113,177 +119,192 @@ const Register: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null
         } else {
           setError('Unexpected error occurred. Please try again later.');
         }
+      } finally {
+        setLoading(false);
       }
     }
   };
 
   return (
+    <View style={styles.root}>
+      <AuroraBackground />
+      <ScrollView contentContainerStyle={styles.container}>
 
-    <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.logoContainer}>
+          <Image source={require('../assets/images/lista.png')} style={[styles.logo, { width: width * 0.22, height: width * 0.22 }]} />
+        </View>
 
-      <View style={styles.logoContainer}>
-        <Image source={require('../assets/images/lista.png')} style={styles.logo} />
-      </View>
+        <Text style={styles.title}>Create account</Text>
+        <Text style={styles.tagline}>Join Lista and start organizing together</Text>
 
+        <GlassCard style={styles.card} contentStyle={styles.cardContent}>
+          <View style={styles.inputContainer}>
+            <Ionicons name="person-outline" size={20} color={colors.placeholder} style={styles.icon} />
+            <Input
+              value={username}
+              onChangeText={setUsername}
+              placeholder="Username"
+              autoCapitalize="none"
+              placeholderTextColor={colors.placeholder}
+              style={styles.input}
+            />
+          </View>
 
-      <Text style={styles.title}>Register</Text>
-      <View style={styles.inputContainer}>
-        <Ionicons
-          name="person-outline"
-          size={24}
-          color="gray"
-          style={styles.icon}
-        />
-        <Input
-          value={username}
-          onChangeText={setUsername}
-          placeholder="Username"
-          autoCapitalize="none"
-          style={styles.input}
-        />
-      </View>
+          <View style={styles.inputContainer}>
+            <Ionicons name="person-outline" size={20} color={colors.placeholder} style={styles.icon} />
+            <Input
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholder="First Name"
+              placeholderTextColor={colors.placeholder}
+              style={styles.input}
+            />
+          </View>
 
-      <View style={styles.inputContainer}>
-        <Ionicons
-          name="person-outline"
-          size={24}
-          color="gray"
-          style={styles.icon}
-        />
-        <Input
-          value={firstName}
-          onChangeText={setFirstName}
-          placeholder="First Name"
-          style={styles.input}
-        />
-      </View>
+          <View style={styles.inputContainer}>
+            <Ionicons name="person-outline" size={20} color={colors.placeholder} style={styles.icon} />
+            <Input
+              value={lastName}
+              onChangeText={setLastName}
+              placeholder="Last Name"
+              placeholderTextColor={colors.placeholder}
+              style={styles.input}
+            />
+          </View>
 
-      <View style={styles.inputContainer}>
-        <Ionicons
-          name="person-outline"
-          size={24}
-          color="gray"
-          style={styles.icon}
-        />
-        <Input
-          value={lastName}
-          onChangeText={setLastName}
-          placeholder="Last Name"
-          style={styles.input}
-        />
-      </View>
+          <View style={styles.inputContainer}>
+            <Ionicons name="mail-outline" size={20} color={colors.placeholder} style={styles.icon} />
+            <Input
+              value={email}
+              onChangeText={setEmail}
+              placeholder="Email"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholderTextColor={colors.placeholder}
+              style={styles.input}
+            />
+          </View>
 
-      <View style={styles.inputContainer}>
-        <Ionicons
-          name="mail-outline"
-          size={24}
-          color="gray"
-          style={styles.icon}
-        />
-        <Input
-          value={email}
-          onChangeText={setEmail}
-          placeholder="Email"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          style={styles.input}
-        />
-      </View>
+          <View style={styles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={20} color={colors.placeholder} style={styles.icon} />
+            <Input
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Password"
+              secureTextEntry
+              autoCapitalize="none"
+              placeholderTextColor={colors.placeholder}
+              style={styles.input}
+            />
+          </View>
 
-      <View style={styles.inputContainer}>
-        <Ionicons
-          name="lock-closed-outline"
-          size={24}
-          color="gray"
-          style={styles.icon}
-        />
-        <Input
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Password"
-          secureTextEntry
-          autoCapitalize="none"
-          style={styles.input}
-        />
-      </View>
-      <Button title="Register" onPress={handleRegister} />
+          <PrimaryButton title="Register" onPress={handleRegister} loading={loading} style={styles.button} />
 
-      {(error || emailError) && (
-        <Text style={styles.erroText}>
-          {error || emailError}
-        </Text>
-      )}
-      <View style={styles.loginContainer}>
-        <Text style={styles.loginText}>Already have an account?</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.loginLink}>Click here to log in</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
-
+          {(error || emailError) && (
+            <Text style={styles.errorText}>
+              {error || emailError}
+            </Text>
+          )}
+          <View style={styles.loginContainer}>
+            <Text style={styles.loginText}>Already have an account?</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.loginLink}>Log in</Text>
+            </TouchableOpacity>
+          </View>
+        </GlassCard>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  container: {
+    flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 40,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontFamily: fonts.displayItalic,
+    fontSize: 28,
+    color: colors.text,
+    marginTop: 12,
+  },
+  tagline: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.textMuted,
+    marginTop: 4,
+    marginBottom: 24,
     textAlign: 'center',
+  },
+  card: {
+    width: '100%',
+    maxWidth: 360,
+  },
+  cardContent: {
+    padding: 24,
   },
   loginContainer: {
-    marginTop: 20,
+    marginTop: 18,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
   },
   loginText: {
-    fontSize: 14,
-    color: '#555',
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textMuted,
   },
   loginLink: {
-    fontSize: 14,
-    color: '#1E90FF',
-    marginTop: 5,
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.primary,
   },
-  erroText: {
-    fontSize: 16,
-    color: 'red',
+  errorText: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
+    color: colors.danger,
     textAlign: 'center',
-    marginTop: 20,
+    marginTop: 14,
   },
   inputContainer: {
-    marginBottom: 15,
+    marginBottom: 12,
     position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.inputBg,
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
+    borderRadius: radii.md,
+    paddingLeft: 14,
   },
   input: {
-    height: 50,
-    paddingLeft: 40,
-    borderWidth: 1,
-    borderRadius: 8,
-    borderColor: '#ccc',
-    fontSize: 16,
+    flex: 1,
+    height: 48,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.text,
+    paddingLeft: 8,
     paddingVertical: 10,
   },
-  icon: {
-    position: 'absolute',
-    left: 10,
-    top: '50%',
-    transform: [{ translateY: -16 }],
+  icon: {},
+  button: {
+    marginTop: 8,
   },
   logoContainer: {
     alignItems: 'center',
-    justifyContent: 'center', 
-    marginBottom: 20,
+    justifyContent: 'center',
   },
   logo: {
-    width: width * 0.3,        
-    height: width * 0.3,       
+    borderRadius: radii.md,
   },
-
 });
 
 export default Register;

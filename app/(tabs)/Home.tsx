@@ -8,6 +8,10 @@ import { ListItem, RootStackParamList } from '../type';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { ScrollView } from 'react-native-gesture-handler';
 import Toast from 'react-native-toast-message';
+import { LinearGradient } from 'expo-linear-gradient';
+import AuroraBackground from '@/components/AuroraBackground';
+import GlassCard from '@/components/GlassCard';
+import { colors, fonts, radii, shadows, progressGradient } from '@/constants/theme';
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'ListItemDetails'>;
 
@@ -84,107 +88,198 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
     }
   };
 
-  return (
+  const doneCount = (item: ListItem) =>
+    item.items.split('|').filter((line) => line.includes('✔️')).length;
+  const totalCount = (item: ListItem) => item.items.split('|').length;
 
-    <ScrollView contentContainerStyle={styles.container}>
-      {loading ? (
-        <Text style={styles.loadingText}> ⏳ Loading...</Text>
-      ) : (
-        <>
-          <Text style={styles.greeting}>Hello, {username || 'Guest'}!</Text>
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <AntDesign name="logout" size={20} color="red" />
-            <Text style={styles.iconLabelLogout}>Logout</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>
-            {listItems.length === 0 ? "Write your dreams here!" : `Your List: ${listItems.length} items`}
-          </Text>
-          <FlatList
-            data={listItems}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
-              <TouchableOpacity onPress={() => handlePressItem(item)}>
-                <View style={styles.listItem}>
-                  <Text style={styles.boldText}>{item.title}</Text>
-                  <Text numberOfLines={3} ellipsizeMode="tail" style={styles.descriptionText}>
-                    {item.items.split('|').join('\n')}
-                  </Text>
-                </View>
+  return (
+    <View style={styles.root}>
+      <AuroraBackground />
+      <ScrollView contentContainerStyle={styles.container}>
+        {loading ? (
+          <Text style={styles.loadingText}>Loading…</Text>
+        ) : (
+          <>
+            <View style={styles.header}>
+              <View>
+                <Text style={styles.greeting}>Hello, {username || 'Guest'}</Text>
+                <Text style={styles.subGreeting}>
+                  {listItems.length === 0
+                    ? 'No lists yet'
+                    : `${listItems.length} active list${listItems.length === 1 ? '' : 's'}`}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+                <AntDesign name="logout" size={17} color={colors.danger} />
               </TouchableOpacity>
+            </View>
+
+            {listItems.length === 0 && (
+              <Text style={styles.emptyTitle}>Write your dreams here!</Text>
             )}
-          />
-          <TouchableOpacity style={styles.addButton} onPress={handleAddListItem}>
-            <AntDesign name="pluscircleo" size={45} color="black" />
-          </TouchableOpacity>
-        </>
+
+            <FlatList
+              data={listItems}
+              keyExtractor={(item) => item.id.toString()}
+              scrollEnabled={false}
+              contentContainerStyle={styles.listContent}
+              renderItem={({ item }) => {
+                const done = doneCount(item);
+                const total = totalCount(item);
+                const progress = total > 0 ? done / total : 0;
+                const gradient = progressGradient(done, total);
+                return (
+                  <TouchableOpacity onPress={() => handlePressItem(item)} activeOpacity={0.85}>
+                    <GlassCard style={styles.listCard} contentStyle={styles.listCardContent}>
+                      <View style={styles.listCardHeader}>
+                        <Text style={styles.boldText}>{item.title}</Text>
+                        <LinearGradient
+                          colors={gradient}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.badge}
+                        >
+                          <Text style={styles.badgeText}>{done}/{total}</Text>
+                        </LinearGradient>
+                      </View>
+                      <Text numberOfLines={2} ellipsizeMode="tail" style={styles.descriptionText}>
+                        {item.items.split('|').join(' · ')}
+                      </Text>
+                      <View style={styles.progressTrack}>
+                        <LinearGradient
+                          colors={gradient}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={[styles.progressFill, { width: `${Math.max(progress * 100, total > 0 ? 4 : 0)}%` }]}
+                        />
+                      </View>
+                    </GlassCard>
+                  </TouchableOpacity>
+                )
+              }}
+            />
+          </>
+        )}
+      </ScrollView>
+      {!loading && (
+        <TouchableOpacity style={styles.addButton} onPress={handleAddListItem}>
+          <AntDesign name="plus" size={24} color="#fff" />
+        </TouchableOpacity>
       )}
-    </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
+  container: {
+    flexGrow: 1,
+    padding: 24,
+    paddingTop: 56,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
   },
   greeting: {
-    fontSize: 20,
-    marginBottom: 20,
+    fontFamily: fonts.display,
+    fontSize: 26,
+    color: colors.text,
   },
-  listItem: {
-    backgroundColor: '#f9f9f9',
-    padding: 15,
-    marginBottom: 10,
-    borderRadius: 10,
+  subGreeting: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
+  emptyTitle: {
+    fontFamily: fonts.displayItalic,
+    fontSize: 20,
+    color: colors.textMuted,
+    marginTop: 40,
+    textAlign: 'center',
+  },
+  listContent: {
+    marginTop: 24,
+    gap: 14,
+  },
+  listCard: {
+    marginBottom: 14,
+  },
+  listCardContent: {
+    padding: 18,
+  },
+  listCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  badge: {
+    borderRadius: radii.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  badgeText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: '#fff',
+  },
+  progressTrack: {
+    width: '100%',
+    height: 6,
+    backgroundColor: 'rgba(106,91,214,0.12)',
+    borderRadius: radii.pill,
+    marginTop: 14,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: radii.pill,
   },
   addButton: {
     position: 'absolute',
     bottom: 30,
     right: 30,
-    backgroundColor: 'white',
     width: 60,
     height: 60,
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.primary,
+    ...shadows.glow,
   },
   boldText: {
-    fontWeight: 'bold',
-    fontSize: 18,
+    fontFamily: fonts.bodyBold,
+    fontSize: 17,
+    color: colors.text,
   },
   descriptionText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#333',
-    marginTop: 5,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textMuted,
+    marginTop: 8,
   },
   loadingText: {
-    fontSize: 30,
-    fontWeight: 'bold',
-    color: '#5F9EA0',
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 20,
+    color: colors.primary,
+    marginTop: 60,
+    textAlign: 'center',
   },
-
   logoutButton: {
-    backgroundColor: 'whit',
-    padding: 10,
-    borderRadius: 50,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.glassBgStrong,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    zIndex: 1,
-  },
-  iconLabelLogout: {
-    color: 'black',
-    marginTop: 5,
-    fontSize: 14,
   },
 });
 

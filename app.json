@@ -23,7 +23,6 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
       "favicon": "./assets/images/lista.png",
       "linking": {
         "enabled": true,
@@ -34,12 +33,6 @@
           }
         }
       }
-    },
-    "plugins": [
-      "expo-router"
-    ],
-    "experiments": {
-      "typedRoutes": true
     }
   }
 }
