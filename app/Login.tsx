@@ -1,5 +1,5 @@
 import React, { Dispatch, SetStateAction, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Input from '@/components/Input';
@@ -21,7 +21,6 @@ const Login: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> 
   const [password, setPassword] = useState<string>('');
   const [errorText, setErrorText] = useState('');
   const [loading, setLoading] = useState(false);
-  const { width } = useWindowDimensions();
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const SERVER = "https://lista-backend-n3la.onrender.com"
 
@@ -90,12 +89,10 @@ const Login: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> 
       <AuroraBackground />
       <ScrollView contentContainerStyle={styles.container}>
 
-        <View style={styles.logoContainer}>
-          <Image source={require('../assets/images/lista.png')} style={[styles.logo, { width: width * 0.24, height: width * 0.24 }]} />
-        </View>
-
+        <Text style={styles.eyebrow}>WELCOME TO</Text>
         <Text style={styles.title}>Lista</Text>
-        <Text style={styles.tagline}>Your calm space for lists that matter</Text>
+        <View style={styles.divider} />
+        <Text style={styles.tagline}>A quiet place to keep what matters.</Text>
 
         <GlassCard style={styles.card} contentStyle={styles.cardContent}>
           <Text style={styles.cardTitle}>Welcome back</Text>
@@ -166,19 +163,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 48,
   },
+  eyebrow: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 11,
+    letterSpacing: 3,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
   title: {
-    fontFamily: fonts.displayItalic,
-    fontSize: 34,
+    fontFamily: fonts.loraWordmark,
+    fontSize: 42,
     color: colors.text,
-    marginTop: 14,
+    marginTop: 6,
+  },
+  divider: {
+    width: 44,
+    height: 2,
+    backgroundColor: colors.primary,
+    marginTop: 18,
   },
   tagline: {
-    fontFamily: fonts.body,
-    fontSize: 14,
+    fontFamily: fonts.loraTagline,
+    fontSize: 15,
     color: colors.textMuted,
-    marginTop: 4,
+    marginTop: 18,
     marginBottom: 30,
     textAlign: 'center',
+    maxWidth: 250,
   },
   card: {
     width: '100%',
@@ -254,13 +265,6 @@ const styles = StyleSheet.create({
   icon: {},
   button: {
     marginTop: 8,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logo: {
-    borderRadius: radii.md,
   },
 });
 

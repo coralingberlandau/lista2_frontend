@@ -57,6 +57,8 @@ export function progressGradient(done: number, total: number) {
 export const fonts = {
   display: 'InstrumentSerif_400Regular',
   displayItalic: 'InstrumentSerif_400Regular_Italic',
+  loraWordmark: 'Lora_600SemiBold',
+  loraTagline: 'Lora_400Regular_Italic',
   body: 'PlusJakartaSans_400Regular',
   bodyMedium: 'PlusJakartaSans_500Medium',
   bodySemiBold: 'PlusJakartaSans_600SemiBold',

@@ -12,6 +12,7 @@ import {
   PlusJakartaSans_700Bold,
   PlusJakartaSans_800ExtraBold,
 } from '@expo-google-fonts/plus-jakarta-sans';
+import { Lora_600SemiBold, Lora_400Regular_Italic } from '@expo-google-fonts/lora';
 import { TabBarIcon } from '@/components/navigation/TabBarIcon';
 import Toast from 'react-native-toast-message';
 import Home from './(tabs)/Home';
@@ -50,6 +51,8 @@ const App: React.FC = () => {
     PlusJakartaSans_600SemiBold,
     PlusJakartaSans_700Bold,
     PlusJakartaSans_800ExtraBold,
+    Lora_600SemiBold,
+    Lora_400Regular_Italic,
   });
 
   useEffect(() => {
