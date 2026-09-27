@@ -24,6 +24,7 @@ const Register: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null
   const [lastName, setLastName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState(false);
   const { width } = useWindowDimensions();
   const navigation = useNavigation<RegisterScreenNavigationProp>();
   const [error, setError] = useState<string | null>(null);
@@ -191,11 +192,18 @@ const Register: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null
               value={password}
               onChangeText={setPassword}
               placeholder="Password"
-              secureTextEntry
+              secureTextEntry={!showPassword}
               autoCapitalize="none"
               placeholderTextColor={colors.placeholder}
               style={styles.input}
             />
+            <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)} hitSlop={8}>
+              <Ionicons
+                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                size={20}
+                color={colors.placeholder}
+              />
+            </TouchableOpacity>
           </View>
 
           <PrimaryButton title="Register" onPress={handleRegister} loading={loading} style={styles.button} />
@@ -284,6 +292,7 @@ const styles = StyleSheet.create({
     borderColor: colors.inputBorder,
     borderRadius: radii.md,
     paddingLeft: 14,
+    paddingRight: 14,
   },
   input: {
     flex: 1,

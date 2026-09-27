@@ -19,6 +19,7 @@ type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'
 const Login: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> }> = ({ setIsLoggedIn }) => {
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorText, setErrorText] = useState('');
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation<LoginScreenNavigationProp>();
@@ -123,11 +124,18 @@ const Login: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> 
               value={password}
               onChangeText={setPassword}
               placeholder="Enter your password"
-              secureTextEntry
+              secureTextEntry={!showPassword}
               autoCapitalize="none"
               placeholderTextColor={colors.placeholder}
               style={styles.input}
             />
+            <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)} hitSlop={8}>
+              <Ionicons
+                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                size={20}
+                color={colors.placeholder}
+              />
+            </TouchableOpacity>
           </View>
 
           <PrimaryButton title="Log In" onPress={handleLogin} loading={loading} style={styles.button} />
@@ -237,6 +245,7 @@ const styles = StyleSheet.create({
     borderColor: colors.inputBorder,
     borderRadius: radii.md,
     paddingLeft: 14,
+    paddingRight: 14,
   },
   input: {
     flex: 1,
