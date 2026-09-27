@@ -95,9 +95,6 @@ const Login: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> 
         <Text style={styles.tagline}>A quiet place to keep what matters.</Text>
 
         <GlassCard style={styles.card} contentStyle={styles.cardContent}>
-          <Text style={styles.cardTitle}>Welcome back</Text>
-          <Text style={styles.cardSubtitle}>Log in to keep your lists in sync</Text>
-
           <View style={styles.inputContainer}>
             <Ionicons
               name="person-outline"
@@ -197,18 +194,6 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     padding: 24,
-  },
-  cardTitle: {
-    fontFamily: fonts.display,
-    fontSize: 20,
-    color: colors.text,
-  },
-  cardSubtitle: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.textMuted,
-    marginTop: 4,
-    marginBottom: 22,
   },
   registerContainer: {
     marginTop: 18,
