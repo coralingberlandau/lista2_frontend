@@ -1,5 +1,5 @@
 import React, { Dispatch, SetStateAction, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Image, useWindowDimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Input from '@/components/Input';
@@ -25,7 +25,6 @@ const Register: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
-  const { width } = useWindowDimensions();
   const navigation = useNavigation<RegisterScreenNavigationProp>();
   const [error, setError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -131,12 +130,9 @@ const Register: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null
       <AuroraBackground />
       <ScrollView contentContainerStyle={styles.container}>
 
-        <View style={styles.logoContainer}>
-          <Image source={require('../assets/images/lista.png')} style={[styles.logo, { width: width * 0.22, height: width * 0.22 }]} />
-        </View>
-
-        <Text style={styles.title}>Create account</Text>
-        <Text style={styles.tagline}>Join Lista and start organizing together</Text>
+        <Text style={styles.title}>Create an Account</Text>
+        <View style={styles.divider} />
+        <Text style={styles.tagline}>Join Lista and start organizing.</Text>
 
         <GlassCard style={styles.card} contentStyle={styles.cardContent}>
           <View style={styles.inputContainer}>
@@ -238,18 +234,25 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   title: {
-    fontFamily: fonts.displayItalic,
-    fontSize: 28,
+    fontFamily: fonts.loraWordmark,
+    fontSize: 38,
     color: colors.text,
-    marginTop: 12,
+    textAlign: 'center',
+  },
+  divider: {
+    width: 44,
+    height: 2,
+    backgroundColor: colors.primary,
+    marginTop: 18,
   },
   tagline: {
-    fontFamily: fonts.body,
-    fontSize: 14,
+    fontFamily: fonts.loraTagline,
+    fontSize: 15,
     color: colors.textMuted,
-    marginTop: 4,
-    marginBottom: 24,
+    marginTop: 18,
+    marginBottom: 30,
     textAlign: 'center',
+    maxWidth: 270,
   },
   card: {
     width: '100%',
@@ -306,13 +309,6 @@ const styles = StyleSheet.create({
   icon: {},
   button: {
     marginTop: 8,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logo: {
-    borderRadius: radii.md,
   },
 });
 

@@ -1,5 +1,5 @@
-import React, { Dispatch, SetStateAction, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
+import { Animated, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Input from '@/components/Input';
@@ -24,6 +24,18 @@ const Login: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> 
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const SERVER = "https://lista-backend-n3la.onrender.com"
+  const checkPulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(checkPulse, { toValue: 1.15, duration: 700, useNativeDriver: true }),
+        Animated.timing(checkPulse, { toValue: 1, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [checkPulse]);
 
   const handleLogin = async () => {
     setErrorText('');
@@ -90,9 +102,12 @@ const Login: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> 
       <AuroraBackground />
       <ScrollView contentContainerStyle={styles.container}>
 
-        <Text style={styles.eyebrow}>WELCOME TO</Text>
-        <Text style={styles.title}>Lista</Text>
-        <View style={styles.divider} />
+        <View style={styles.titleWrap}>
+          <Text style={styles.title}>Lista</Text>
+          <Animated.View style={[styles.checkBadge, { transform: [{ scale: checkPulse }] }]}>
+            <Ionicons name="checkmark" size={13} color={colors.white} />
+          </Animated.View>
+        </View>
         <Text style={styles.tagline}>A quiet place to keep what matters.</Text>
 
         <GlassCard style={styles.card} contentStyle={styles.cardContent}>
@@ -168,30 +183,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 48,
   },
-  eyebrow: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 11,
-    letterSpacing: 3,
-    color: colors.textMuted,
-    textAlign: 'center',
+  titleWrap: {
+    position: 'relative',
+    alignSelf: 'center',
   },
   title: {
     fontFamily: fonts.loraWordmark,
-    fontSize: 42,
+    fontSize: 56,
     color: colors.text,
-    marginTop: 6,
   },
-  divider: {
-    width: 44,
-    height: 2,
-    backgroundColor: colors.primary,
-    marginTop: 18,
+  checkBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -38,
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    backgroundColor: colors.blobTeal,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.blobTeal,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 4,
   },
   tagline: {
     fontFamily: fonts.loraTagline,
     fontSize: 15,
     color: colors.textMuted,
-    marginTop: 18,
+    marginTop: 10,
     marginBottom: 30,
     textAlign: 'center',
     maxWidth: 250,

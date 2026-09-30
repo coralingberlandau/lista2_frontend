@@ -9,7 +9,7 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import { ScrollView } from 'react-native-gesture-handler';
 import Toast from 'react-native-toast-message';
 import { LinearGradient } from 'expo-linear-gradient';
-import AuroraBackground from '@/components/AuroraBackground';
+import AppBackground from '@/components/AppBackground';
 import GlassCard from '@/components/GlassCard';
 import { colors, fonts, radii, shadows, progressGradient } from '@/constants/theme';
 
@@ -38,9 +38,11 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
     setLoading(true);
 
     try {
-      const storedUsername = await AsyncStorage.getItem('userName');
-      const storedUserId = await AsyncStorage.getItem('userId');
-      const token = await AsyncStorage.getItem('token');
+      const [storedUsername, storedUserId, token] = await Promise.all([
+        AsyncStorage.getItem('userName'),
+        AsyncStorage.getItem('userId'),
+        AsyncStorage.getItem('token'),
+      ]);
 
       if (!token) {
         throw new Error('No token found');
@@ -76,7 +78,7 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem('userToken');
+      await AsyncStorage.removeItem('token');
       setIsLoggedIn(false);
     } catch (error) {
       console.error('Error logging out:', error);
@@ -94,7 +96,7 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
 
   return (
     <View style={styles.root}>
-      <AuroraBackground />
+      <AppBackground />
       <ScrollView contentContainerStyle={styles.container}>
         {loading ? (
           <Text style={styles.loadingText}>Loading…</Text>
@@ -143,7 +145,15 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
                         </LinearGradient>
                       </View>
                       <Text numberOfLines={2} ellipsizeMode="tail" style={styles.descriptionText}>
-                        {item.items.split('|').join(' · ')}
+                        {item.items.split('|').map((line, index, lines) => (
+                          <Text
+                            key={index}
+                            style={line.includes('✔️') && styles.descriptionDone}
+                          >
+                            {line}
+                            {index < lines.length - 1 ? ' · ' : ''}
+                          </Text>
+                        ))}
                       </Text>
                       <View style={styles.progressTrack}>
                         <LinearGradient
@@ -179,6 +189,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 24,
     paddingTop: 56,
+    paddingBottom: 110,
   },
   header: {
     flexDirection: 'row',
@@ -187,7 +198,7 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontFamily: fonts.display,
-    fontSize: 26,
+    fontSize: 42,
     color: colors.text,
   },
   subGreeting: {
@@ -242,7 +253,7 @@ const styles = StyleSheet.create({
   },
   addButton: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 96,
     right: 30,
     width: 60,
     height: 60,
@@ -263,6 +274,10 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     color: colors.textMuted,
     marginTop: 8,
+  },
+  descriptionDone: {
+    textDecorationLine: 'line-through',
+    opacity: 0.6,
   },
   loadingText: {
     fontFamily: fonts.bodySemiBold,

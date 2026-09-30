@@ -4,15 +4,14 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerRootComponent } from 'expo';
 import * as SplashScreen from 'expo-splash-screen';
-import { useFonts, InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif';
+import { useFonts, Fraunces_600SemiBold, Fraunces_500Medium_Italic } from '@expo-google-fonts/fraunces';
 import {
-  PlusJakartaSans_400Regular,
-  PlusJakartaSans_500Medium,
-  PlusJakartaSans_600SemiBold,
-  PlusJakartaSans_700Bold,
-  PlusJakartaSans_800ExtraBold,
-} from '@expo-google-fonts/plus-jakarta-sans';
-import { Lora_600SemiBold, Lora_400Regular_Italic } from '@expo-google-fonts/lora';
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_600SemiBold,
+  DMSans_700Bold,
+  DMSans_800ExtraBold,
+} from '@expo-google-fonts/dm-sans';
 import { TabBarIcon } from '@/components/navigation/TabBarIcon';
 import Toast from 'react-native-toast-message';
 import Home from './(tabs)/Home';
@@ -24,7 +23,6 @@ import { RootStackParamList } from './type';
 import ResetPassword from './ResetPassword';
 import EditProfile from './(tabs)/EditProfile';
 import ChangePassword from './ChangePassword';
-import Welcome from './Welcome';
 import { colors, fonts } from '@/constants/theme';
 
 const Tab = createBottomTabNavigator<RootStackParamList>();
@@ -44,15 +42,13 @@ const navigationTheme = {
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [fontsLoaded] = useFonts({
-    InstrumentSerif_400Regular,
-    InstrumentSerif_400Regular_Italic,
-    PlusJakartaSans_400Regular,
-    PlusJakartaSans_500Medium,
-    PlusJakartaSans_600SemiBold,
-    PlusJakartaSans_700Bold,
-    PlusJakartaSans_800ExtraBold,
-    Lora_600SemiBold,
-    Lora_400Regular_Italic,
+    Fraunces_600SemiBold,
+    Fraunces_500Medium_Italic,
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_600SemiBold,
+    DMSans_700Bold,
+    DMSans_800ExtraBold,
   });
 
   useEffect(() => {
@@ -64,7 +60,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const checkLogin = async () => {
       try {
-        const token = await AsyncStorage.getItem('userToken');
+        const token = await AsyncStorage.getItem('token');
         token && setIsLoggedIn(true);
       } catch (error) {
         console.error('Error checking login status:', error);
@@ -96,7 +92,11 @@ const App: React.FC = () => {
             tabBarActiveTintColor: colors.primary,
             tabBarInactiveTintColor: colors.placeholder,
             tabBarStyle: {
-              backgroundColor: colors.background,
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(255,255,255,0.75)',
               borderTopColor: colors.glassBorder,
             },
             tabBarLabelStyle: {
@@ -137,16 +137,6 @@ const App: React.FC = () => {
         </Tab.Navigator>
       ) : (
         <Tab.Navigator>
-          <Tab.Screen
-            name="Welcome"
-            options={{
-              headerShown: false,
-              tabBarButton: () => null,
-              tabBarStyle: { display: 'none' },
-            }}
-          >
-            {(props) => <Welcome {...props} />}
-          </Tab.Screen>
           <Tab.Screen
             name="Login"
             options={{

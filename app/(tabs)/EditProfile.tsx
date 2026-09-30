@@ -203,6 +203,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 24,
         paddingVertical: 40,
+        paddingBottom: 110,
     },
     title: {
         fontFamily: fonts.display,

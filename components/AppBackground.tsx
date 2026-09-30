@@ -1,0 +1,118 @@
+import React, { useCallback, useState } from 'react';
+import { ImageBackground, StyleSheet, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
+import AuroraBackground from './AuroraBackground';
+import { backgroundImageSources } from '@/constants/backgroundImages';
+import {
+  CUSTOM_BACKGROUND_ID,
+  CUSTOM_BACKGROUND_URI_KEY,
+  getGradientById,
+} from '@/constants/gradientBackgrounds';
+
+type AppBackgroundProps = {
+  /**
+   * Lets a screen show a newly picked background immediately, before the
+   * async save round-trip finishes. Falls back to the saved value otherwise.
+   */
+  overrideId?: number | null;
+  /** Same idea as overrideId, for a freshly picked custom photo's local URI. */
+  overrideCustomUri?: string | null;
+};
+
+const FROSTED_WASH = [
+  'rgba(251,249,246,0.62)',
+  'rgba(251,249,246,0.48)',
+  'rgba(251,249,246,0.48)',
+  'rgba(251,249,246,0.58)',
+] as const;
+
+/**
+ * The app-wide background: the AuroraBackground blobs by default, or the
+ * user's chosen photo / gradient / custom upload once they customize it in
+ * Settings. Reads the saved choice on every focus so it stays in sync across
+ * Home, Settings, and the list screens without a global store.
+ */
+export default function AppBackground({ overrideId, overrideCustomUri }: AppBackgroundProps) {
+  const [storedId, setStoredId] = useState<number | null>(null);
+  const [storedCustomUri, setStoredCustomUri] = useState<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      AsyncStorage.getItem('customizations').then((value) => {
+        const parsed = value ? parseInt(value, 10) : NaN;
+        setStoredId(Number.isFinite(parsed) ? parsed : null);
+      });
+      AsyncStorage.getItem(CUSTOM_BACKGROUND_URI_KEY).then(setStoredCustomUri);
+    }, [])
+  );
+
+  const activeId = overrideId ?? storedId;
+  const activeCustomUri = overrideCustomUri ?? storedCustomUri;
+
+  if (activeId === CUSTOM_BACKGROUND_ID && activeCustomUri) {
+    return (
+      <PhotoBackground source={{ uri: activeCustomUri }} />
+    );
+  }
+
+  const gradient = activeId ? getGradientById(activeId) : null;
+  if (gradient) {
+    return (
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <LinearGradient
+          colors={gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+      </View>
+    );
+  }
+
+  const image =
+    activeId && activeId >= 1 && activeId <= backgroundImageSources.length
+      ? backgroundImageSources[activeId - 1]
+      : null;
+
+  if (!image) {
+    return <AuroraBackground />;
+  }
+
+  return <PhotoBackground source={image} />;
+}
+
+function PhotoBackground({ source }: { source: any }) {
+  return (
+    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+      <ImageBackground
+        source={source}
+        style={[StyleSheet.absoluteFillObject, styles.stretch]}
+        resizeMode="cover"
+      >
+        {/* Light frosted wash, not a dark vignette: keeps the app's existing
+            dark-text-on-light look legible on any photo (bright or dark)
+            and stays consistent with the glass-card aesthetic used elsewhere. */}
+        <LinearGradient
+          colors={FROSTED_WASH}
+          locations={[0, 0.3, 0.7, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+      </ImageBackground>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  // Without an explicit width/height, react-native-web sizes the image's
+  // container to the source photo's own natural pixel dimensions instead of
+  // stretching to fill absoluteFillObject's inset (0/0/0/0) box, leaving the
+  // background short of the edges on wide/resized viewports.
+  stretch: {
+    width: '100%',
+    height: '100%',
+  },
+});

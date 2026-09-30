@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, Image, FlatList, ImageBackground, useWindowDimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, Image, FlatList, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { RouteProp, useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
-import { BackgroundImage, ImageData, ListItem, RootStackParamList, User } from './type';
+import { ImageData, ListItem, RootStackParamList, User } from './type';
 import { Ionicons, AntDesign, FontAwesome } from '@expo/vector-icons';
 import axios from 'axios';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -11,6 +11,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 import { ScrollView } from 'react-native-gesture-handler';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import AppBackground from '@/components/AppBackground';
 import GlassCard from '@/components/GlassCard';
 import PrimaryButton from '@/components/PrimaryButton';
 import { colors, fonts, radii, shadows } from '@/constants/theme';
@@ -31,9 +32,8 @@ const ListItemDetails: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [largeImage, setLargeImage] = useState<string | null>(null);
   const [images, setImages] = useState<ImageData[]>([]);
-  const [backgroundImageId, setBackgroundImageId] = useState<string>('25');
   const { width, height } = useWindowDimensions();
-  const [recommendations, setRecommendations] = useState([]);
+  const [recommendations, setRecommendations] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [updatedImagesIndex, setUpdatedImagesIndex] = useState<string[]>([])
   const [deletedImagesIndex, setDeletedImagesIndex] = useState<string[]>([])
@@ -43,33 +43,6 @@ const ListItemDetails: React.FC = () => {
   const SERVER = "https://lista-backend-n3la.onrender.com"
 
 
-  const backgroundImages = [
-    require('../assets/background/back1.jpg'),
-    require('../assets/background/back2.jpg'),
-    require('../assets/background/back3.jpg'),
-    require('../assets/background/back4.jpg'),
-    require('../assets/background/back5.jpg'),
-    require('../assets/background/back6.jpg'),
-    require('../assets/background/back7.jpg'),
-    require('../assets/background/back8.jpg'),
-    require('../assets/background/back9.jpg'),
-    require('../assets/background/back10.jpg'),
-    require('../assets/background/back11.jpg'),
-    require('../assets/background/back12.jpg'),
-    require('../assets/background/back13.jpg'),
-    require('../assets/background/back14.jpg'),
-    require('../assets/background/back15.jpg'),
-    require('../assets/background/back16.jpg'),
-    require('../assets/background/back17.jpg'),
-    require('../assets/background/back18.jpg'),
-    require('../assets/background/back19.jpg'),
-    require('../assets/background/back20.jpg'),
-    require('../assets/background/back21.jpg'),
-    require('../assets/background/back22.jpg'),
-    require('../assets/background/back23.jpg'),
-    require('../assets/background/back24.jpg'),
-  ];
-
   useFocusEffect(
     useCallback(() => {
       setTitle(listItem?.title || '');
@@ -77,7 +50,6 @@ const ListItemDetails: React.FC = () => {
       setUpdatedImagesIndex([])
       setDeletedImagesIndex([])
       getImages()
-      getBackgroundImage()
       fetchPermissionType();
     }, [listItem])
   );
@@ -122,30 +94,25 @@ const ListItemDetails: React.FC = () => {
 
     setLoading(true);
     try {
-      const data = await getRecommendations(listItem.id);
-      if (data && data.recommended_items) {
-        setRecommendations(data.recommended_items.split(','));
-        console.log('Recommendations data:', data);
-
-      }
+      const suggestions = await getRecommendations(items);
+      setRecommendations(suggestions);
     } catch (error) {
       console.error('Error fetching recommendations:', error);
+      setRecommendations([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const getRecommendations = async (listItemId: number) => {
+  const getRecommendations = async (currentItems: string[]): Promise<string[]> => {
     try {
-      const response = await axios.get(`${SERVER}/recommendations/${listItemId}/`)
-      console.log('Server response:', response);
-      if (response.status !== 200) {
-        throw new Error('Network response was not ok');
-      }
-      const data = await response.data;
-      return data;
+      const response = await axios.post('/.netlify/functions/recommendations', {
+        items: currentItems.filter((item) => item.trim() !== ''),
+      });
+      return response.data?.recommendations || [];
     } catch (error) {
       console.error('Error fetching recommendations:', error);
+      return [];
     }
   }
 
@@ -348,11 +315,6 @@ const ListItemDetails: React.FC = () => {
     }
   };
 
-  const getBackgroundImage = async () => {
-    const backgroundId = await AsyncStorage.getItem('customizations');
-    setBackgroundImageId(backgroundId)
-  };
-
   const handleDeleteItem = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -519,10 +481,8 @@ const ListItemDetails: React.FC = () => {
 
   return (
     <View style={{ flex: 1 }}>
-      <ImageBackground
-        source={backgroundImages[parseInt(backgroundImageId, 10) - 1]}
-        style={[styles.background, { width, height }]}
-        resizeMode="cover">
+      <AppBackground />
+      <View style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.container}>
           <GlassCard style={styles.headerCard} contentStyle={styles.headerCardContent}>
             <TextInput
@@ -726,19 +686,17 @@ const ListItemDetails: React.FC = () => {
             />
           )}
         </ScrollView>
-      </ImageBackground>
-    </View >
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-  },
   container: {
     flex: 1,
     padding: 20,
     paddingTop: 52,
+    paddingBottom: 110,
   },
   headerCard: {
     marginBottom: 14,

@@ -1,0 +1,28 @@
+import { ImageSourcePropType } from 'react-native';
+
+export const backgroundImageSources: ImageSourcePropType[] = [
+  require('../assets/background/back1.jpg'),
+  require('../assets/background/back2.jpg'),
+  require('../assets/background/back3.jpg'),
+  require('../assets/background/back4.jpg'),
+  require('../assets/background/back5.jpg'),
+  require('../assets/background/back6.jpg'),
+  require('../assets/background/back7.jpg'),
+  require('../assets/background/back8.jpg'),
+  require('../assets/background/back9.jpg'),
+  require('../assets/background/back10.jpg'),
+  require('../assets/background/back11.jpg'),
+  require('../assets/background/back12.jpg'),
+  require('../assets/background/back13.jpg'),
+  require('../assets/background/back14.jpg'),
+  require('../assets/background/back15.jpg'),
+  require('../assets/background/back16.jpg'),
+  require('../assets/background/back17.jpg'),
+  require('../assets/background/back18.jpg'),
+  require('../assets/background/back19.jpg'),
+  require('../assets/background/back20.jpg'),
+  require('../assets/background/back21.jpg'),
+  require('../assets/background/back22.jpg'),
+  require('../assets/background/back23.jpg'),
+  require('../assets/background/back24.jpg'),
+];

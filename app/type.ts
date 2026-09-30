@@ -1,8 +1,7 @@
 import { ImageSourcePropType } from "react-native";
 
 export type RootStackParamList = {
-  Welcome: undefined;  
-  Login: undefined;  
+  Login: undefined;
   Home: undefined 
   Register: undefined;
   Settings: undefined;
@@ -11,10 +10,6 @@ export type RootStackParamList = {
   EditProfile: { userId: string } | undefined; 
   ChangePassword: { email: string };
 };
-
-export interface WelcomeProps {
-  navigation: any; 
-}
 
 export interface JwtPayload {
   exp: number;

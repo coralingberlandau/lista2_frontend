@@ -1,18 +1,33 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Linking, ImageSourcePropType } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { BackgroundImage, RootStackParamList } from '../type';
+import { RootStackParamList } from '../type';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { Image } from 'react-native';
 import axios from 'axios';
 import { FlatList, ScrollView } from 'react-native-gesture-handler';
-import _ from 'lodash';
-import AuroraBackground from '@/components/AuroraBackground';
+import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import debounce from 'lodash/debounce';
+import AppBackground from '@/components/AppBackground';
 import GlassCard from '@/components/GlassCard';
+import { backgroundImageSources } from '@/constants/backgroundImages';
+import {
+  gradientBackgrounds,
+  DEFAULT_BACKGROUND_ID,
+  CUSTOM_BACKGROUND_ID,
+  CUSTOM_BACKGROUND_URI_KEY,
+} from '@/constants/gradientBackgrounds';
 import { colors, fonts, radii } from '@/constants/theme';
+
+type Swatch =
+  | { kind: 'default' }
+  | { kind: 'photo'; id: number; url: ImageSourcePropType }
+  | { kind: 'gradient'; id: number; colors: readonly [string, string] }
+  | { kind: 'upload' };
 
 type SettingsProps = {
   setIsLoggedIn: React.Dispatch<React.SetStateAction<boolean | null>>;
@@ -21,10 +36,11 @@ type EditProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, '
 
 const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
   const appName = "Lista Application";
-  const version = "1.0.0";
+  const version = "2.0.0";
   const supportContact = "listaassistance@gmail.com";
   const navigation = useNavigation<EditProfileScreenNavigationProp>();
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
+  const [customUri, setCustomUri] = useState<string | null>(null);
   const SERVER = "https://lista-backend-n3la.onrender.com"
 
 
@@ -38,7 +54,7 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem('userToken');
+      await AsyncStorage.removeItem('token');
       setIsLoggedIn(false);
     } catch (error) {
       console.error('Error logging out:', error);
@@ -50,73 +66,95 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
     }
   };
 
-  const backgroundImages: BackgroundImage[] = [
-    { id: 1, url: require('../../assets/background/back1.jpg') },
-    { id: 2, url: require('../../assets/background/back2.jpg') },
-    { id: 3, url: require('../../assets/background/back3.jpg') },
-    { id: 4, url: require('../../assets/background/back4.jpg') },
-    { id: 5, url: require('../../assets/background/back5.jpg') },
-    { id: 6, url: require('../../assets/background/back6.jpg') },
-    { id: 7, url: require('../../assets/background/back7.jpg') },
-    { id: 8, url: require('../../assets/background/back8.jpg') },
-    { id: 9, url: require('../../assets/background/back9.jpg') },
-    { id: 10, url: require('../../assets/background/back10.jpg') },
-    { id: 11, url: require('../../assets/background/back11.jpg') },
-    { id: 12, url: require('../../assets/background/back12.jpg') },
-    { id: 13, url: require('../../assets/background/back13.jpg') },
-    { id: 14, url: require('../../assets/background/back14.jpg') },
-    { id: 15, url: require('../../assets/background/back15.jpg') },
-    { id: 16, url: require('../../assets/background/back16.jpg') },
-    { id: 17, url: require('../../assets/background/back17.jpg') },
-    { id: 18, url: require('../../assets/background/back18.jpg') },
-    { id: 19, url: require('../../assets/background/back19.jpg') },
-    { id: 20, url: require('../../assets/background/back20.jpg') },
-    { id: 21, url: require('../../assets/background/back21.jpg') },
-    { id: 22, url: require('../../assets/background/back22.jpg') },
-    { id: 23, url: require('../../assets/background/back23.jpg') },
-    { id: 24, url: require('../../assets/background/back24.jpg') },
-  ];
+  const swatches: Swatch[] = useMemo(
+    () => [
+      { kind: 'default' },
+      ...backgroundImageSources.map((url, index): Swatch => ({ kind: 'photo', id: index + 1, url })),
+      ...gradientBackgrounds.map((g): Swatch => ({ kind: 'gradient', id: g.id, colors: g.colors })),
+      { kind: 'upload' },
+    ],
+    []
+  );
 
-  const debounceSaveToServer = _.debounce(async (imageId: number) => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await axios.post(
-        `${SERVER}/customizations/`,
-        {
-          background_image_id: imageId || 0,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+  useFocusEffect(
+    useCallback(() => {
+      AsyncStorage.getItem('customizations').then((value) => {
+        const parsed = value ? parseInt(value, 10) : NaN;
+        setSelectedImage(Number.isFinite(parsed) ? parsed : null);
+      });
+      AsyncStorage.getItem(CUSTOM_BACKGROUND_URI_KEY).then(setCustomUri);
+    }, [])
+  );
+
+  const debounceSaveToServer = useMemo(
+    () =>
+      debounce(async (imageId: number) => {
+        try {
+          const token = await AsyncStorage.getItem('token');
+          const response = await axios.post(
+            `${SERVER}/customizations/`,
+            {
+              background_image_id: imageId || 0,
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          if (response.status === 200) {
+            await AsyncStorage.setItem('customizations', imageId.toString());
+          }
+
+          Toast.show({
+            type: 'success',
+            text1: 'Background changed successfully!',
+          });
+        } catch (error) {
+          console.error('Error:', error);
+          Toast.show({
+            type: 'error',
+            text1: 'An error occurred. Please try again later.',
+          });
         }
-      );
-
-      if (response.status === 200) {
-        await AsyncStorage.setItem('customizations', imageId.toString());
-      }
-
-      Toast.show({
-        type: 'success',
-        text1: 'Background changed successfully!',
-      });
-    } catch (error) {
-      console.error('Error:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'An error occurred. Please try again later.',
-      });
-    }
-  }, 500);
+      }, 500),
+    []
+  );
 
   const handleBackgroundChange = async (imageId: number) => {
     setSelectedImage(imageId);
+    await AsyncStorage.setItem('customizations', imageId.toString());
     debounceSaveToServer(imageId);
+  };
+
+  const handleUploadCustomBackground = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Toast.show({
+        type: 'error',
+        text1: 'Photo library access is needed to pick a background.',
+      });
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.length) {
+      return;
+    }
+
+    const uri = result.assets[0].uri;
+    setCustomUri(uri);
+    await AsyncStorage.setItem(CUSTOM_BACKGROUND_URI_KEY, uri);
+    await handleBackgroundChange(CUSTOM_BACKGROUND_ID);
   };
 
   return (
     <View style={styles.root}>
-      <AuroraBackground />
+      <AppBackground overrideId={selectedImage} overrideCustomUri={customUri} />
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <View>
@@ -149,23 +187,76 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
         </View>
         <GlassCard style={styles.card} contentStyle={styles.backgroundPickerContainer}>
           <FlatList
-            data={backgroundImages}
+            data={swatches}
             scrollEnabled={false}
-            renderItem={({ item }: { item: BackgroundImage }) => (
-              <TouchableOpacity
-                onPress={() => handleBackgroundChange(item.id)}
-                style={[
-                  styles.backgroundImageOption,
-                  selectedImage === item.id && styles.selectedBackgroundImage,
-                ]}
-              >
-                <Image
-                  source={item.url}
-                  style={styles.backgroundImage}
-                  resizeMode="cover"
-                />
-              </TouchableOpacity>
-            )}
+            renderItem={({ item }: { item: Swatch }) => {
+              if (item.kind === 'default') {
+                const isSelected = selectedImage === DEFAULT_BACKGROUND_ID || selectedImage === null;
+                return (
+                  <TouchableOpacity
+                    onPress={() => handleBackgroundChange(DEFAULT_BACKGROUND_ID)}
+                    style={[styles.backgroundImageOption, isSelected && styles.selectedBackgroundImage]}
+                  >
+                    <View style={styles.defaultSwatch}>
+                      <View style={[styles.miniBlob, styles.miniBlobViolet]} />
+                      <View style={[styles.miniBlob, styles.miniBlobCoral]} />
+                      <View style={[styles.miniBlob, styles.miniBlobTeal]} />
+                    </View>
+                  </TouchableOpacity>
+                );
+              }
+
+              if (item.kind === 'photo') {
+                return (
+                  <TouchableOpacity
+                    onPress={() => handleBackgroundChange(item.id)}
+                    style={[
+                      styles.backgroundImageOption,
+                      selectedImage === item.id && styles.selectedBackgroundImage,
+                    ]}
+                  >
+                    <Image source={item.url} style={styles.backgroundImage} resizeMode="cover" />
+                  </TouchableOpacity>
+                );
+              }
+
+              if (item.kind === 'gradient') {
+                return (
+                  <TouchableOpacity
+                    onPress={() => handleBackgroundChange(item.id)}
+                    style={[
+                      styles.backgroundImageOption,
+                      selectedImage === item.id && styles.selectedBackgroundImage,
+                    ]}
+                  >
+                    <LinearGradient
+                      colors={item.colors}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.backgroundImage}
+                    />
+                  </TouchableOpacity>
+                );
+              }
+
+              const isCustomSelected = selectedImage === CUSTOM_BACKGROUND_ID;
+              return (
+                <TouchableOpacity
+                  onPress={handleUploadCustomBackground}
+                  style={[
+                    styles.backgroundImageOption,
+                    styles.uploadOption,
+                    isCustomSelected && styles.selectedBackgroundImage,
+                  ]}
+                >
+                  {isCustomSelected && customUri ? (
+                    <Image source={{ uri: customUri }} style={styles.backgroundImage} resizeMode="cover" />
+                  ) : (
+                    <Ionicons name="add" size={24} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              );
+            }}
             keyExtractor={(_, index) => index.toString()}
             numColumns={4}
           />
@@ -190,6 +281,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 20,
     paddingTop: 56,
+    paddingBottom: 110,
   },
   header: {
     flexDirection: 'row',
@@ -199,7 +291,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: fonts.display,
-    fontSize: 26,
+    fontSize: 42,
     color: colors.text,
   },
   version: {
@@ -295,6 +387,40 @@ const styles = StyleSheet.create({
   },
   selectedBackgroundImage: {
     borderColor: colors.primary,
+  },
+  defaultSwatch: {
+    width: '100%',
+    height: '100%',
+    borderRadius: radii.sm - 2,
+    backgroundColor: colors.background,
+    overflow: 'hidden',
+  },
+  miniBlob: {
+    position: 'absolute',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    opacity: 0.75,
+  },
+  miniBlobViolet: {
+    backgroundColor: colors.blobViolet,
+    top: -8,
+    left: -6,
+  },
+  miniBlobCoral: {
+    backgroundColor: colors.blobCoral,
+    bottom: -10,
+    right: -8,
+  },
+  miniBlobTeal: {
+    backgroundColor: colors.blobTeal,
+    bottom: 4,
+    left: 10,
+  },
+  uploadOption: {
+    backgroundColor: colors.glassBgStrong,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   footerContainer: {
     alignItems: 'center',

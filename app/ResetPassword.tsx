@@ -71,6 +71,9 @@ const ResetPassword: React.FC = () => {
       <AuroraBackground />
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>Reset Password</Text>
+        <View style={styles.divider} />
+        <Text style={styles.tagline}>We'll send a secure link to your email.</Text>
+
         <GlassCard style={styles.card} contentStyle={styles.cardContent}>
           <View style={styles.inputContainer}>
             <Ionicons
@@ -93,7 +96,8 @@ const ResetPassword: React.FC = () => {
           <PrimaryButton
             title={loading ? 'Sending Reset Link…' : 'Send Reset Link'}
             onPress={handleRequestResetLink}
-            loading={loading} />
+            loading={loading}
+            style={styles.button} />
 
           {message || errorText ? (
             <Text style={message ? styles.message : styles.errorText}>
@@ -126,18 +130,32 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   title: {
-    fontFamily: fonts.display,
-    fontSize: 26,
+    fontFamily: fonts.loraWordmark,
+    fontSize: 38,
     color: colors.text,
-    marginBottom: 22,
     textAlign: 'center',
+  },
+  divider: {
+    width: 44,
+    height: 2,
+    backgroundColor: colors.primary,
+    marginTop: 18,
+  },
+  tagline: {
+    fontFamily: fonts.loraTagline,
+    fontSize: 15,
+    color: colors.textMuted,
+    marginTop: 18,
+    marginBottom: 30,
+    textAlign: 'center',
+    maxWidth: 270,
   },
   card: {
     width: '100%',
     maxWidth: 360,
   },
   cardContent: {
-    padding: 24,
+    padding: 26,
   },
   message: {
     marginTop: 16,
@@ -188,6 +206,9 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
   },
   icon: {},
+  button: {
+    marginTop: 4,
+  },
 });
 
 export default ResetPassword;
