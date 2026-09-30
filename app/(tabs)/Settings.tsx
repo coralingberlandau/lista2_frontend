@@ -35,7 +35,7 @@ type SettingsProps = {
 type EditProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, 'EditProfile'>;
 
 const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
-  const appName = "Lista Application";
+  const appName = "Lista";
   const version = "2.0.0";
   const supportContact = "listaassistance@gmail.com";
   const navigation = useNavigation<EditProfileScreenNavigationProp>();
@@ -156,18 +156,22 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
     <View style={styles.root}>
       <AppBackground overrideId={selectedImage} overrideCustomUri={customUri} />
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>{appName}</Text>
-            <Text style={styles.version}>Version {version}</Text>
-          </View>
+        <View style={styles.headerContainer}>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
             <AntDesign name="logout" size={17} color={colors.danger} />
           </TouchableOpacity>
+          <View style={styles.titleBlock}>
+            <Text style={styles.title}>{appName}</Text>
+            <View style={styles.titleRule} />
+            <Text style={styles.version}>Version {version}</Text>
+          </View>
         </View>
 
         <GlassCard style={styles.card} contentStyle={styles.cardContent}>
-          <Text style={styles.sectionTitle}>Support</Text>
+          <View style={[styles.sectionLabelRow, styles.sectionLabelRowSpaced]}>
+            <Ionicons name="help-circle-outline" size={14} color={colors.text} />
+            <Text style={styles.sectionLabel}>Support</Text>
+          </View>
           <Text style={styles.supportInfo}>For assistance, please contact Lista support:</Text>
           <TouchableOpacity onPress={handleEmailPress}>
             <Text style={styles.supportContact}>{supportContact}</Text>
@@ -176,17 +180,20 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
           <Text style={styles.inspirationText}>We're here to make your life easier and more organized. </Text>
         </GlassCard>
 
-        <TouchableOpacity onPress={navigateToEditProfile} style={styles.editProfileButton}>
-          <Ionicons name="pencil-outline" size={20} color={colors.primary} />
-          <Text style={styles.editProfileText}>Edit Profile</Text>
+        <TouchableOpacity onPress={navigateToEditProfile}>
+          <GlassCard style={styles.card} contentStyle={[styles.cardContent, styles.sectionLabelRow]}>
+            <Ionicons name="pencil-outline" size={14} color={colors.primary} />
+            <Text style={styles.sectionLabel}>Edit Profile</Text>
+          </GlassCard>
         </TouchableOpacity>
 
-        <View style={styles.backgroundHeader}>
-          <Ionicons name="color-palette-outline" size={20} color={colors.text} />
-          <Text style={styles.backgroundTitle}>Background</Text>
-        </View>
-        <GlassCard style={styles.card} contentStyle={styles.backgroundPickerContainer}>
+        <GlassCard style={styles.card} contentStyle={styles.cardContent}>
+          <View style={[styles.sectionLabelRow, styles.sectionLabelRowSpaced]}>
+            <Ionicons name="color-palette-outline" size={14} color={colors.text} />
+            <Text style={styles.sectionLabel}>Background</Text>
+          </View>
           <FlatList
+            style={styles.backgroundGridWrap}
             data={swatches}
             scrollEnabled={false}
             renderItem={({ item }: { item: Swatch }) => {
@@ -283,22 +290,32 @@ const styles = StyleSheet.create({
     paddingTop: 56,
     paddingBottom: 110,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  headerContainer: {
+    position: 'relative',
+    alignItems: 'center',
     marginBottom: 20,
+  },
+  titleBlock: {
+    alignItems: 'center',
   },
   title: {
     fontFamily: fonts.display,
-    fontSize: 42,
+    fontSize: 48,
     color: colors.text,
+    textAlign: 'center',
+  },
+  titleRule: {
+    width: 32,
+    height: 1,
+    backgroundColor: colors.placeholder,
+    marginVertical: 8,
   },
   version: {
     fontFamily: fonts.body,
-    fontSize: 13,
+    fontSize: 11,
+    letterSpacing: 1.8,
     color: colors.textMuted,
-    marginTop: 4,
+    textTransform: 'uppercase',
   },
   card: {
     width: '100%',
@@ -307,11 +324,20 @@ const styles = StyleSheet.create({
   cardContent: {
     padding: 18,
   },
-  sectionTitle: {
+  sectionLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  sectionLabelRowSpaced: {
+    marginBottom: 10,
+  },
+  sectionLabel: {
     fontFamily: fonts.bodyBold,
-    fontSize: 16,
-    color: colors.text,
-    marginBottom: 8,
+    fontSize: 11,
+    letterSpacing: 1.3,
+    color: colors.placeholder,
+    textTransform: 'uppercase',
   },
   supportInfo: {
     fontFamily: fonts.body,
@@ -332,6 +358,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   logoutButton: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
     width: 38,
     height: 38,
     borderRadius: 19,
@@ -341,35 +370,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  editProfileButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.glassBgStrong,
-    padding: 14,
-    borderRadius: radii.md,
-    marginBottom: 20,
-    borderColor: colors.glassBorder,
-    borderWidth: 1,
-    gap: 8,
-  },
-  editProfileText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 14,
-    color: colors.text,
-  },
-  backgroundHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  backgroundTitle: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 15,
-    color: colors.text,
-  },
-  backgroundPickerContainer: {
-    padding: 12,
+  backgroundGridWrap: {
+    marginTop: 10,
   },
   backgroundImageOption: {
     margin: 4,
