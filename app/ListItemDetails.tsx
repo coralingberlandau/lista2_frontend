@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, Image, FlatList, useWindowDimensions, ActivityIndicator } from 'react-native';
 import { RouteProp, useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { ImageData, ListItem, RootStackParamList, User } from './type';
-import { Ionicons, AntDesign, FontAwesome } from '@expo/vector-icons';
+import { Ionicons, AntDesign, FontAwesome, Feather } from '@expo/vector-icons';
 import axios from 'axios';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Toast from 'react-native-toast-message';
@@ -554,9 +554,6 @@ const ListItemDetails: React.FC = () => {
                         </View>
                       </View>
                     </Modal>
-                    <TouchableOpacity onPress={() => handleRemoveItem(index)} style={{ marginRight: 10 }}>
-                      <AntDesign name="delete" size={20} color={colors.danger} />
-                    </TouchableOpacity>
                     <TextInput
                       style={[
                         styles.textArea,
@@ -571,6 +568,9 @@ const ListItemDetails: React.FC = () => {
                       value={item}
                       onChangeText={(text) => handleItemChange(text, index)}
                     />
+                    <TouchableOpacity onPress={() => handleRemoveItem(index)} style={{ marginLeft: 10 }}>
+                      <Feather name="trash-2" size={20} color={colors.danger} />
+                    </TouchableOpacity>
                   </View>
                 )
               }}

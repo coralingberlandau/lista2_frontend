@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontFamily: fonts.displayItalic,
-    fontSize: 20,
+    fontSize: 28,
     color: colors.textMuted,
     marginTop: 40,
     textAlign: 'center',
