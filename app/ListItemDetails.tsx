@@ -10,7 +10,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 import { ScrollView } from 'react-native-gesture-handler';
-import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import AppBackground from '@/components/AppBackground';
 import GlassCard from '@/components/GlassCard';
 import PrimaryButton from '@/components/PrimaryButton';
@@ -596,7 +595,7 @@ const ListItemDetails: React.FC = () => {
             {isUpdateMode && (
               <TouchableOpacity style={styles.iconContainer} onPress={fetchRecommendations}>
                 <View style={styles.iconCircle}>
-                  <FontAwesome5 name="lightbulb" size={17} color={colors.primary} />
+                  <Text style={styles.iconEmoji}>💡</Text>
                 </View>
                 <Text style={styles.iconLabel}>AI</Text>
               </TouchableOpacity>
@@ -682,7 +681,7 @@ const ListItemDetails: React.FC = () => {
             {isUpdateMode && (
               <TouchableOpacity style={styles.iconContainer} onPress={handleToggleAllItems}>
                 <View style={styles.iconCircle}>
-                  <FontAwesome5 name="check-double" size={16} color={colors.primary} />
+                  <Ionicons name="checkmark-circle-outline" size={19} color={colors.primary} />
                 </View>
                 <Text style={styles.iconLabel}>{allItemsChecked ? 'Uncheck All' : 'Check All'}</Text>
               </TouchableOpacity>
@@ -829,6 +828,10 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: 'center',
     marginTop: 4,
+  },
+  iconEmoji: {
+    fontSize: 16,
+    lineHeight: 19,
   },
   modalCard: {},
   modalContainer: {
