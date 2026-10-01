@@ -200,10 +200,9 @@ const styles = StyleSheet.create({
     },
     container: {
         flexGrow: 1,
-        justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 24,
-        paddingVertical: 40,
+        paddingTop: 56,
         paddingBottom: 110,
     },
     title: {
