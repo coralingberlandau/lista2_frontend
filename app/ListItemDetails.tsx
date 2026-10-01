@@ -171,7 +171,8 @@ const ListItemDetails: React.FC = () => {
 
   const handleItemChange = (text: string, index: number) => {
     const newItems = [...items];
-    newItems[index] = text;
+    const wasChecked = newItems[index].startsWith('✔️ ');
+    newItems[index] = wasChecked ? `✔️ ${text}` : text;
     setItems(newItems);
   };
 
@@ -579,7 +580,7 @@ const ListItemDetails: React.FC = () => {
                       placeholder="Write here..."
                       placeholderTextColor={colors.placeholder}
                       multiline={false}
-                      value={item}
+                      value={isChecked ? item.replace('✔️ ', '') : item}
                       onChangeText={(text) => handleItemChange(text, index)}
                     />
                     <TouchableOpacity onPress={() => handleRemoveItem(index)} style={{ marginLeft: 10 }}>
