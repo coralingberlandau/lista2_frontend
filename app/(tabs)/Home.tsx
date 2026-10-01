@@ -10,6 +10,7 @@ import { ScrollView } from 'react-native-gesture-handler';
 import Toast from 'react-native-toast-message';
 import { LinearGradient } from 'expo-linear-gradient';
 import AppBackground from '@/components/AppBackground';
+import AuroraDotsLoader from '@/components/AuroraDotsLoader';
 import GlassCard from '@/components/GlassCard';
 import { colors, fonts, radii, shadows, progressGradient } from '@/constants/theme';
 
@@ -99,7 +100,9 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
       <AppBackground />
       <ScrollView contentContainerStyle={styles.container}>
         {loading ? (
-          <Text style={styles.loadingText}>Loading…</Text>
+          <View style={styles.loadingContainer}>
+            <AuroraDotsLoader />
+          </View>
         ) : (
           <>
             <View style={styles.headerContainer}>
@@ -290,12 +293,8 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
     opacity: 0.6,
   },
-  loadingText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 20,
-    color: colors.primary,
+  loadingContainer: {
     marginTop: 60,
-    textAlign: 'center',
   },
   logoutButton: {
     position: 'absolute',
