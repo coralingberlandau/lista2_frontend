@@ -14,6 +14,7 @@ import {
 } from '@expo-google-fonts/dm-sans';
 import { TabBarIcon } from '@/components/navigation/TabBarIcon';
 import Toast from 'react-native-toast-message';
+import { toastConfig } from '@/components/ToastConfig';
 import Home from './(tabs)/Home';
 import Login from './Login';
 import Register from './Register';
@@ -180,7 +181,7 @@ const App: React.FC = () => {
           />
         </Tab.Navigator>
       )}
-      <Toast/>
+      <Toast config={toastConfig} />
     </NavigationContainer>
   );
 }
