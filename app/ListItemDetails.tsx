@@ -491,14 +491,10 @@ const ListItemDetails: React.FC = () => {
               onChangeText={setTitle}
               placeholderTextColor={colors.placeholder}
               placeholder="Edit Title" />
-            <Text style={styles.titleHint}>Tap to name your list</Text>
+            <View style={styles.titleRule} />
           </View>
 
           <GlassCard style={styles.itemsCard} contentStyle={styles.itemsCardContent}>
-            <View style={styles.sectionLabelRow}>
-              <Ionicons name="list-outline" size={14} color={colors.text} />
-              <Text style={styles.sectionLabel}>Items</Text>
-            </View>
             <FlatList
               data={items}
               scrollEnabled={false}
@@ -714,29 +710,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 6,
     paddingHorizontal: 20,
-    borderBottomWidth: 1.5,
-    borderBottomColor: colors.text,
   },
-  titleHint: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 9,
-    letterSpacing: 1.5,
-    color: colors.placeholder,
-    textTransform: 'uppercase',
-    marginTop: 6,
-  },
-  sectionLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 8,
-  },
-  sectionLabel: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 11,
-    letterSpacing: 1.3,
-    color: colors.placeholder,
-    textTransform: 'uppercase',
+  titleRule: {
+    width: 32,
+    height: 1,
+    backgroundColor: colors.placeholder,
+    marginTop: 8,
   },
   itemsCard: {
     marginBottom: 6,
