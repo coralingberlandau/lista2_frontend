@@ -102,18 +102,19 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
           <Text style={styles.loadingText}>Loading…</Text>
         ) : (
           <>
-            <View style={styles.header}>
-              <View>
+            <View style={styles.headerContainer}>
+              <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+                <AntDesign name="logout" size={17} color={colors.danger} />
+              </TouchableOpacity>
+              <View style={styles.titleBlock}>
                 <Text style={styles.greeting}>Hello, {username || 'Guest'}</Text>
+                <View style={styles.titleRule} />
                 <Text style={styles.subGreeting}>
                   {listItems.length === 0
                     ? 'No lists yet'
                     : `${listItems.length} active list${listItems.length === 1 ? '' : 's'}`}
                 </Text>
               </View>
-              <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-                <AntDesign name="logout" size={17} color={colors.danger} />
-              </TouchableOpacity>
             </View>
 
             {listItems.length === 0 && (
@@ -191,21 +192,31 @@ const styles = StyleSheet.create({
     paddingTop: 56,
     paddingBottom: 110,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
+  headerContainer: {
+    position: 'relative',
+    alignItems: 'center',
+  },
+  titleBlock: {
+    alignItems: 'center',
   },
   greeting: {
     fontFamily: fonts.display,
     fontSize: 42,
     color: colors.text,
+    textAlign: 'center',
+  },
+  titleRule: {
+    width: 32,
+    height: 1,
+    backgroundColor: colors.placeholder,
+    marginVertical: 8,
   },
   subGreeting: {
-    fontFamily: fonts.body,
-    fontSize: 13,
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    letterSpacing: 1.8,
     color: colors.textMuted,
-    marginTop: 4,
+    textTransform: 'uppercase',
   },
   emptyTitle: {
     fontFamily: fonts.displayItalic,
@@ -287,6 +298,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   logoutButton: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
     width: 38,
     height: 38,
     borderRadius: 19,

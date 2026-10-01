@@ -127,6 +127,7 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
             <AuroraBackground />
             <ScrollView contentContainerStyle={styles.container}>
                 <Text style={styles.title}>Edit Profile</Text>
+                <View style={styles.titleRule} />
 
                 <GlassCard style={styles.card} contentStyle={styles.cardContent}>
                     <View style={styles.inputContainer}>
@@ -209,8 +210,15 @@ const styles = StyleSheet.create({
         fontFamily: fonts.display,
         fontSize: 40,
         color: colors.text,
-        marginBottom: 22,
         textAlign: 'center',
+    },
+    titleRule: {
+        width: 32,
+        height: 1,
+        backgroundColor: colors.placeholder,
+        marginTop: 8,
+        marginBottom: 22,
+        alignSelf: 'center',
     },
     card: {
         width: '100%',

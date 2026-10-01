@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: fonts.loraWordmark,
-    fontSize: 38,
+    fontSize: 40,
     color: colors.text,
     textAlign: 'center',
   },

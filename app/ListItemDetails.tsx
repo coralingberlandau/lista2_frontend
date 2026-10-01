@@ -484,16 +484,21 @@ const ListItemDetails: React.FC = () => {
       <AppBackground />
       <View style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.container}>
-          <GlassCard style={styles.headerCard} contentStyle={styles.headerCardContent}>
+          <View style={styles.titleBlock}>
             <TextInput
               style={[styles.titleInput, { outline: 'none' }]}
               value={title}
               onChangeText={setTitle}
               placeholderTextColor={colors.placeholder}
               placeholder="Edit Title" />
-          </GlassCard>
+            <Text style={styles.titleHint}>Tap to name your list</Text>
+          </View>
 
           <GlassCard style={styles.itemsCard} contentStyle={styles.itemsCardContent}>
+            <View style={styles.sectionLabelRow}>
+              <Ionicons name="list-outline" size={14} color={colors.text} />
+              <Text style={styles.sectionLabel}>Items</Text>
+            </View>
             <FlatList
               data={items}
               scrollEnabled={false}
@@ -698,32 +703,47 @@ const styles = StyleSheet.create({
     paddingTop: 52,
     paddingBottom: 110,
   },
-  headerCard: {
-    marginBottom: 14,
-  },
-  headerCardContent: {
-    paddingHorizontal: 18,
-    paddingVertical: 6,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  titleBlock: {
     alignItems: 'center',
-    width: '100%',
+    marginBottom: 18,
   },
   titleInput: {
-    width: '100%',
-    fontSize: 22,
+    fontSize: 24,
     fontFamily: fonts.display,
     color: colors.text,
-    paddingVertical: 10,
+    textAlign: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1.5,
+    borderBottomColor: colors.text,
+  },
+  titleHint: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    color: colors.placeholder,
+    textTransform: 'uppercase',
+    marginTop: 6,
+  },
+  sectionLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  sectionLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    letterSpacing: 1.3,
+    color: colors.placeholder,
+    textTransform: 'uppercase',
   },
   itemsCard: {
     marginBottom: 6,
   },
   itemsCardContent: {
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 12,
   },
   item: {
     width: '100%',
@@ -756,7 +776,9 @@ const styles = StyleSheet.create({
   addItemButtonText: {
     color: colors.primary,
     fontFamily: fonts.bodyBold,
-    fontSize: 14,
+    fontSize: 11,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   updateButton: {
     marginVertical: 10,
