@@ -187,6 +187,20 @@ const ListItemDetails: React.FC = () => {
     setItems(newItems);
   };
 
+  const allItemsChecked = items.length > 0 && items.every((item) => item.startsWith('✔️ '));
+
+  const handleToggleAllItems = () => {
+    setItems((prev) =>
+      prev.map((item) => {
+        const isChecked = item.startsWith('✔️ ');
+        if (allItemsChecked) {
+          return isChecked ? item.replace('✔️ ', '') : item;
+        }
+        return isChecked ? item : `✔️ ${item}`;
+      })
+    );
+  };
+
   const handleRemoveImages = (index: number, imageToRemove: ImageData) => {
     const newImages = images.filter((image) => image.index !== index)
     setImages(newImages);
@@ -665,6 +679,14 @@ const ListItemDetails: React.FC = () => {
                 </GlassCard>
               </View>
             )}
+            {isUpdateMode && (
+              <TouchableOpacity style={styles.iconContainer} onPress={handleToggleAllItems}>
+                <View style={styles.iconCircle}>
+                  <FontAwesome5 name="check-double" size={16} color={colors.primary} />
+                </View>
+                <Text style={styles.iconLabel}>{allItemsChecked ? 'Uncheck All' : 'Check All'}</Text>
+              </TouchableOpacity>
+            )}
             {isUpdateMode && permissionType === 'full_access' && (
               <TouchableOpacity style={styles.iconContainer} onPress={() => handleDeleteItem()}>
                 <View style={styles.iconCircle}>
@@ -704,7 +726,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   titleInput: {
-    fontSize: 24,
+    fontSize: 35,
     fontFamily: fonts.display,
     color: colors.text,
     textAlign: 'center',
