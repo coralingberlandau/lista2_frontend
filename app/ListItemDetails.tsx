@@ -116,6 +116,14 @@ const ListItemDetails: React.FC = () => {
   }
 
   const handleAddItem = async () => {
+    if (!title.trim()) {
+      Toast.show({
+        type: 'error',
+        text1: 'Add a title to save your list',
+      });
+      return;
+    }
+
     const storedUserId = await AsyncStorage.getItem('userId');
     const token = await AsyncStorage.getItem('token');
     if (storedUserId && token) {
