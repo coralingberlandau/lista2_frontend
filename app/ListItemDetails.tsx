@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, Image, FlatList, useWindowDimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, Image, FlatList, useWindowDimensions } from 'react-native';
 import { RouteProp, useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { ImageData, ListItem, RootStackParamList, User } from './type';
 import { Ionicons, AntDesign, FontAwesome, Feather } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { ScrollView } from 'react-native-gesture-handler';
 import AppBackground from '@/components/AppBackground';
+import AuroraDotsLoader from '@/components/AuroraDotsLoader';
 import GlassCard from '@/components/GlassCard';
 import PrimaryButton from '@/components/PrimaryButton';
 import { colors, fonts, radii, shadows } from '@/constants/theme';
@@ -41,6 +42,7 @@ const ListItemDetails: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [permissionType, setPermissionType] = useState<string>('full_access');
   const [isAIModalVisible, setIsAIModalVisible] = useState(false);
+  const [aiStatus, setAiStatus] = useState<'loading' | 'ideas' | 'empty' | 'error'>('loading');
   const SERVER = "https://lista-backend-n3la.onrender.com"
 
 
@@ -90,31 +92,34 @@ const ListItemDetails: React.FC = () => {
     setIsAIModalVisible(true);
     if (!listItem || !listItem.id) {
       console.error('Item ID is not available');
+      setAiStatus('error');
       return;
     }
 
+    setAiStatus('loading');
     setLoading(true);
     try {
       const suggestions = await getRecommendations(items);
       setRecommendations(suggestions);
+      setAiStatus(suggestions.length > 0 ? 'ideas' : 'empty');
     } catch (error) {
       console.error('Error fetching recommendations:', error);
       setRecommendations([]);
+      setAiStatus('error');
     } finally {
       setLoading(false);
     }
   };
 
   const getRecommendations = async (currentItems: string[]): Promise<string[]> => {
-    try {
-      const response = await axios.post('/.netlify/functions/recommendations', {
-        items: currentItems.filter((item) => item.trim() !== ''),
-      });
-      return response.data?.recommendations || [];
-    } catch (error) {
-      console.error('Error fetching recommendations:', error);
-      return [];
+    const response = await axios.post('/.netlify/functions/recommendations', {
+      items: currentItems.filter((item) => item.trim() !== ''),
+    });
+    const recommendations = response.data?.recommendations;
+    if (!Array.isArray(recommendations)) {
+      throw new Error('Unexpected recommendations response');
     }
+    return recommendations;
   }
 
   const handleAddItem = async () => {
@@ -699,39 +704,56 @@ const ListItemDetails: React.FC = () => {
               </TouchableOpacity>
             )}
             {isAIModalVisible && (
-              <View style={styles.overlay}>
-                <GlassCard style={styles.modalCard} contentStyle={styles.modalContainer} tint={colors.glassBgStrong}>
-                  <Text style={styles.modalTitle}>AI Recommendations</Text>
-                  {loading ? (
-                    <ActivityIndicator size="large" color={colors.primary} />
-                  ) : (
-                    <View style={styles.recommendationsContainer}>
-                      {recommendations.length > 0 ? (
-                        <FlatList
-                          data={recommendations}
-                          keyExtractor={(item, index) => index.toString()}
-                          renderItem={({ item }) => (
-                            <View style={styles.recommendationItem}>
-                              <Text style={styles.recommendationText}>{item}</Text>
-                            </View>
-                          )}
-                        />
-                      ) : (
-                        <View style={styles.emptyContainer}>
-                          <ScrollView contentContainerStyle={styles.scrollViewContent}>
-                            <Text style={styles.emptyText}>Temporary unavailable....</Text>
-                          </ScrollView>
-                        </View>
-                      )}
+              <View style={styles.shareOverlay}>
+                <GlassCard style={styles.shareCard} contentStyle={styles.shareCardContent} tint={colors.glassBgStrong}>
+                  <TouchableOpacity style={styles.shareCloseButton} onPress={() => setIsAIModalVisible(false)}>
+                    <Ionicons name="close" size={18} color={colors.danger} />
+                  </TouchableOpacity>
+                  <Text style={styles.shareTitle}>Ideas for your list</Text>
+                  <View style={styles.shareTitleRule} />
+                  {aiStatus === 'loading' && (
+                    <View style={styles.aiStateBox}>
+                      <AuroraDotsLoader />
+                      <Text style={styles.aiStateTitle}>Thinking of ideas…</Text>
                     </View>
                   )}
-                  <View style={styles.separator} />
-                  <TouchableOpacity
-                    style={styles.closeButton}
-                    onPress={() => setIsAIModalVisible(false)}
-                  >
-                    <Text style={styles.closeButtonText}>Close</Text>
-                  </TouchableOpacity>
+                  {aiStatus === 'ideas' && (
+                    <View>
+                      <View style={styles.aiLabelRow}>
+                        <Text style={styles.aiLabelEmoji}>💡</Text>
+                        <Text style={styles.shareLabelInline}>AI Recommendations</Text>
+                      </View>
+                      <ScrollView style={styles.aiIdeasScroll}>
+                        {recommendations.map((idea, index) => (
+                          <View key={index} style={styles.aiIdeaRow}>
+                            <Text style={styles.aiIdeaText}>{idea}</Text>
+                          </View>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+                  {aiStatus === 'empty' && (
+                    <View style={styles.aiStateBox}>
+                      <View style={[styles.aiStateIcon, styles.aiStateIconSoft]}>
+                        <Text style={styles.aiStateEmoji}>💡</Text>
+                      </View>
+                      <Text style={styles.aiStateTitle}>No ideas this time</Text>
+                      <Text style={styles.aiStateText}>Add a few more items to your list, then ask again.</Text>
+                    </View>
+                  )}
+                  {aiStatus === 'error' && (
+                    <View style={styles.aiStateBox}>
+                      <View style={[styles.aiStateIcon, styles.aiStateIconError]}>
+                        <Text style={styles.aiStateExclaim}>!</Text>
+                      </View>
+                      <Text style={styles.aiStateTitle}>Couldn't load ideas</Text>
+                      <Text style={styles.aiStateText}>Something went wrong. Please try again in a little while.</Text>
+                      <TouchableOpacity style={styles.aiTryAgain} onPress={fetchRecommendations}>
+                        <Ionicons name="refresh" size={14} color={colors.primary} />
+                        <Text style={styles.aiTryAgainText}>Try again</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </GlassCard>
               </View>
             )}
@@ -980,13 +1002,6 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     marginBottom: 30,
   },
-  modalTitle: {
-    marginBottom: 15,
-    color: colors.text,
-    fontFamily: fonts.display,
-    fontSize: 20,
-    textAlign: 'center',
-  },
   confirmButton: {
     marginTop: 4,
     marginBottom: 0,
@@ -1028,12 +1043,6 @@ const styles = StyleSheet.create({
   iconEmoji: {
     fontSize: 16,
     lineHeight: 19,
-  },
-  modalCard: {},
-  modalContainer: {
-    borderRadius: 10,
-    padding: 20,
-    margin: 20,
   },
   shareOverlay: {
     position: 'fixed' as any,
@@ -1082,6 +1091,87 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 8,
     marginBottom: 18,
+  },
+  aiStateBox: {
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  aiStateIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  aiStateIconSoft: {
+    backgroundColor: 'rgba(106,91,214,0.1)',
+  },
+  aiStateIconError: {
+    backgroundColor: 'rgba(226,83,107,0.12)',
+  },
+  aiStateEmoji: {
+    fontSize: 16,
+    lineHeight: 20,
+  },
+  aiStateExclaim: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 16,
+    color: colors.danger,
+  },
+  aiStateTitle: {
+    fontFamily: fonts.displayItalic,
+    fontSize: 14,
+    color: colors.text,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  aiStateText: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  aiTryAgain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 14,
+    paddingVertical: 9,
+    paddingHorizontal: 22,
+    borderRadius: radii.pill,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(106,91,214,0.07)',
+  },
+  aiTryAgainText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.primary,
+  },
+  aiLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  aiLabelEmoji: {
+    fontSize: 13,
+  },
+  aiIdeasScroll: {
+    maxHeight: 260,
+  },
+  aiIdeaRow: {
+    paddingVertical: 11,
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
+  },
+  aiIdeaText: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.text,
   },
   shareLabel: {
     fontFamily: fonts.bodyBold,
@@ -1235,29 +1325,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  closeButton: {
-    backgroundColor: 'rgba(226,83,107,0.12)',
-    paddingVertical: 10,
-    borderRadius: radii.sm,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  closeButtonText: {
-    color: colors.danger,
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 14,
-  },
-  overlay: {
-    position: 'fixed' as any,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-  },
   seeImage: {
     padding: 20,
     justifyContent: 'center',
@@ -1269,40 +1336,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
-  },
-  recommendationsContainer: {
-    marginTop: 20,
-  },
-  recommendationItem: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
-  },
-  recommendationText: {
-    fontFamily: fonts.body,
-    color: colors.text,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    borderRadius: radii.sm,
-    borderWidth: 1,
-    borderColor: colors.divider,
-    maxHeight: 150,
-    flex: 1,
-  },
-  emptyText: {
-    color: colors.textMuted,
-    fontFamily: fonts.body,
-    fontStyle: 'italic',
-  },
-  separator: {
-    height: 20,
-  },
-  scrollViewContent: {
-    flexGrow: 1,
   },
 });
 
