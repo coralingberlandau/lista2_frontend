@@ -26,6 +26,9 @@ const ListItemDetails: React.FC = () => {
   const [items, setItems] = useState<string[]>(listItem ? listItem.items.split("|") : ['']);
   const [permission, setPermission] = useState('read_only');
   const [shareValue, setShareValue] = useState('');
+  const [sharePeople, setSharePeople] = useState<{ email: string; permission: string }[]>([]);
+  const [failedEmails, setFailedEmails] = useState<string[]>([]);
+  const [isSharing, setIsSharing] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [largeImage, setLargeImage] = useState<string | null>(null);
@@ -234,6 +237,9 @@ const ListItemDetails: React.FC = () => {
   };
 
   const handleSharePress = () => {
+    setSharePeople([]);
+    setFailedEmails([]);
+    setShareValue('');
     setIsModalVisible(true);
   };
 
@@ -241,57 +247,141 @@ const ListItemDetails: React.FC = () => {
     setPermission(selectedPermission);
   };
 
+  const shareTotal =
+    sharePeople.length +
+    (shareValue.trim() && !sharePeople.some((person) => person.email.toLowerCase() === shareValue.trim().toLowerCase()) ? 1 : 0);
+
+  const hasSharePerson = (email: string) =>
+    sharePeople.some((person) => person.email.toLowerCase() === email.toLowerCase());
+
+  const handleAddSharePerson = () => {
+    const email = shareValue.trim();
+    if (!email) {
+      return;
+    }
+    if (hasSharePerson(email)) {
+      Toast.show({
+        type: 'error',
+        text1: 'That email is already added.',
+      });
+      return;
+    }
+    setSharePeople((prev) => [...prev, { email, permission }]);
+    setFailedEmails((prev) => prev.filter((failed) => failed !== email));
+    setShareValue('');
+  };
+
+  const handleMoveSharePerson = (email: string) => {
+    setSharePeople((prev) =>
+      prev.map((person) =>
+        person.email === email
+          ? { ...person, permission: person.permission === 'read_only' ? 'full_access' : 'read_only' }
+          : person
+      )
+    );
+  };
+
+  const handleRemoveSharePerson = (email: string) => {
+    setSharePeople((prev) => prev.filter((person) => person.email !== email));
+    setFailedEmails((prev) => prev.filter((failed) => failed !== email));
+  };
+
+  const shareOneEmail = async (email: string, personPermission: string, token: string) => {
+    const userResponse: { data: User } = await axios.get(`${SERVER}/get_user_info/${email}/`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    console.log(userResponse, userResponse.data.id)
+    await axios.post(`${SERVER}/grouplists/`, {
+      user: userResponse.data.id,
+      list_item: listItem?.id,
+      role: 'member',
+      permission_type: personPermission,
+    }, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  };
+
   const handleConfirmShare = async () => {
     const storedUserId = await AsyncStorage.getItem('userId');
     const token = await AsyncStorage.getItem('token');
 
     if (storedUserId && token) {
-      try {
-        const userResponse: { data: User } = await axios.get(`${SERVER}/get_user_info/${shareValue}/`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-        console.log(userResponse, userResponse.data.id)
-        await axios.post(`${SERVER}/grouplists/`, {
-          user: userResponse.data.id,
-          list_item: listItem?.id,
-          role: 'member',
-          permission_type: permission,
-        }, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const people = [...sharePeople];
+      const pendingEmail = shareValue.trim();
+      if (pendingEmail && !hasSharePerson(pendingEmail)) {
+        people.push({ email: pendingEmail, permission });
+      }
+
+      if (people.length === 0) {
+        Toast.show({
+          type: 'error',
+          text1: 'Add at least one email to share with.',
         });
+        return;
+      }
+
+      setIsSharing(true);
+      setFailedEmails([]);
+      let sharedCount = 0;
+      const notFound: string[] = [];
+      const otherFailed: string[] = [];
+
+      for (const person of people) {
+        try {
+          await shareOneEmail(person.email, person.permission, token);
+          sharedCount += 1;
+        } catch (error: any) {
+          console.error('Error sharing list item:', error);
+          if (error.response) {
+            console.error('Response data:', error.response.data);
+          }
+          if (error.response?.status === 404 || error.status === 404) {
+            notFound.push(person.email);
+          } else {
+            otherFailed.push(person.email);
+          }
+        }
+      }
+
+      setIsSharing(false);
+      setShareValue('');
+      const failed = [...notFound, ...otherFailed];
+
+      if (failed.length === 0) {
         Toast.show({
           type: 'success',
-          text1: 'List shared successfully!',
+          text1: sharedCount === 1 ? 'List shared successfully!' : `List shared with ${sharedCount} people.`,
         });
-        setShareValue('');
-      } catch (error: any) {
-        console.error('Error sharing list item:', error);
-        if (error.response) {
-          console.error('Response data:', error.response.data);
-        }
-        if (error.status === 404) {
-          Toast.show({
-            type: 'error',
-            text1: 'User not found. Please verify the email',
-          });
-        }
-        else {
-          Toast.show({
-            type: 'error',
-            text1: 'Error sharing the list. Please try again later.',
-          });
-        }
-        setShareValue('');
-      } finally {
+        setSharePeople([]);
         setIsModalVisible(false);
+        return;
       }
+
+      setSharePeople(people.filter((person) => failed.includes(person.email)));
+      setFailedEmails(failed);
+      const details: string[] = [];
+      if (notFound.length > 0) {
+        details.push(`Couldn't find: ${notFound.join(', ')}. They need to join Lista first, then share again.`);
+      }
+      if (otherFailed.length > 0) {
+        details.push(`Something went wrong for: ${otherFailed.join(', ')}. Please try again later.`);
+      }
+      Toast.show({
+        type: 'error',
+        text1:
+          sharedCount > 0
+            ? `Shared with ${sharedCount} ${sharedCount === 1 ? 'person' : 'people'}.`
+            : "Couldn't share the list.",
+        text2: details.join(' '),
+        visibilityTime: 7000,
+      });
     } else {
       Toast.show({
         type: 'error',
@@ -666,12 +756,32 @@ const ListItemDetails: React.FC = () => {
                   </TouchableOpacity>
                   <Text style={styles.shareTitle}>Share list</Text>
                   <View style={styles.shareTitleRule} />
-                  <Text style={styles.shareLabel}>Permission</Text>
+                  <Text style={styles.shareLabel}>Add an email</Text>
+                  <View style={styles.shareInputRow}>
+                    <TextInput
+                      placeholder="Enter an email"
+                      placeholderTextColor={colors.placeholder}
+                      value={shareValue}
+                      onChangeText={setShareValue}
+                      onSubmitEditing={handleAddSharePerson}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      style={[styles.input, styles.shareEmailInput]}
+                    />
+                    <TouchableOpacity style={styles.shareAddButton} onPress={handleAddSharePerson}>
+                      <Ionicons name="add" size={22} color={colors.white} />
+                    </TouchableOpacity>
+                  </View>
                   <View style={styles.permissionSwitch}>
                     <TouchableOpacity
                       style={[styles.permissionOption, permission === 'read_only' && styles.permissionOptionActive]}
                       onPress={() => handlePermissionSelect('read_only')}
                     >
+                      <Ionicons
+                        name="eye-outline"
+                        size={15}
+                        color={permission === 'read_only' ? colors.text : colors.textMuted}
+                      />
                       <Text style={[styles.permissionOptionText, permission === 'read_only' && styles.permissionOptionTextActive]}>
                         Read Only
                       </Text>
@@ -680,20 +790,87 @@ const ListItemDetails: React.FC = () => {
                       style={[styles.permissionOption, permission === 'full_access' && styles.permissionOptionActive]}
                       onPress={() => handlePermissionSelect('full_access')}
                     >
+                      <Ionicons
+                        name="pencil-outline"
+                        size={15}
+                        color={permission === 'full_access' ? colors.text : colors.textMuted}
+                      />
                       <Text style={[styles.permissionOptionText, permission === 'full_access' && styles.permissionOptionTextActive]}>
                         Full Access
                       </Text>
                     </TouchableOpacity>
                   </View>
-                  <Text style={styles.shareLabel}>Email</Text>
-                  <TextInput
-                    placeholder="Enter an email"
-                    placeholderTextColor={colors.placeholder}
-                    value={shareValue}
-                    onChangeText={setShareValue}
-                    style={styles.input}
+                  {sharePeople.length === 0 ? (
+                    <Text style={styles.shareHint}>People you add will appear here, grouped by what they can do.</Text>
+                  ) : (
+                    (['read_only', 'full_access'] as const).map((groupPermission) => {
+                      const members = sharePeople.filter((person) => person.permission === groupPermission);
+                      if (members.length === 0) {
+                        return null;
+                      }
+                      const isEditGroup = groupPermission === 'full_access';
+                      return (
+                        <View key={groupPermission} style={styles.shareGroup}>
+                          <View style={styles.shareGroupHeader}>
+                            <Ionicons
+                              name={isEditGroup ? 'pencil-outline' : 'eye-outline'}
+                              size={14}
+                              color={colors.placeholder}
+                            />
+                            <Text style={styles.shareLabelInline}>
+                              {isEditGroup ? 'Can edit' : 'Can view'} · {members.length}
+                            </Text>
+                          </View>
+                          <View style={[styles.shareGroupBox, isEditGroup ? styles.shareGroupBoxEdit : styles.shareGroupBoxView]}>
+                            {members.map((person) => {
+                              const isFailed = failedEmails.includes(person.email);
+                              return (
+                                <View
+                                  key={person.email}
+                                  style={[
+                                    styles.shareChip,
+                                    isEditGroup ? styles.shareChipEdit : styles.shareChipView,
+                                    isFailed && styles.shareChipFailed,
+                                  ]}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.shareChipText,
+                                      isEditGroup ? styles.shareChipTextEdit : styles.shareChipTextView,
+                                      isFailed && styles.shareChipTextFailed,
+                                    ]}
+                                    numberOfLines={1}
+                                  >
+                                    {person.email}
+                                  </Text>
+                                  <TouchableOpacity
+                                    style={styles.shareChipMove}
+                                    onPress={() => handleMoveSharePerson(person.email)}
+                                  >
+                                    <Ionicons
+                                      name={isEditGroup ? 'arrow-up' : 'arrow-down'}
+                                      size={12}
+                                      color={colors.textMuted}
+                                    />
+                                  </TouchableOpacity>
+                                  <TouchableOpacity onPress={() => handleRemoveSharePerson(person.email)}>
+                                    <Ionicons name="close" size={14} color={colors.placeholder} />
+                                  </TouchableOpacity>
+                                </View>
+                              );
+                            })}
+                          </View>
+                        </View>
+                      );
+                    })
+                  )}
+                  <PrimaryButton
+                    title={shareTotal > 0 ? `Confirm Share (${shareTotal})` : 'Confirm Share'}
+                    onPress={handleConfirmShare}
+                    loading={isSharing}
+                    disabled={shareTotal === 0}
+                    style={styles.confirmButton}
                   />
-                  <PrimaryButton title="Confirm Share" onPress={handleConfirmShare} style={styles.confirmButton} />
                 </GlassCard>
               </View>
             )}
@@ -811,7 +988,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   confirmButton: {
-    marginTop: 0,
+    marginTop: 4,
     marginBottom: 0,
   },
   iconRowContainer: {
@@ -923,6 +1100,9 @@ const styles = StyleSheet.create({
   },
   permissionOption: {
     flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
     alignItems: 'center',
     paddingVertical: 9,
     borderRadius: radii.sm - 3,
@@ -933,6 +1113,102 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
+  },
+  shareInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  shareEmailInput: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  shareAddButton: {
+    width: 48,
+    height: 48,
+    borderRadius: radii.sm,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shareHint: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.placeholder,
+    marginBottom: 16,
+  },
+  shareGroup: {
+    marginBottom: 12,
+  },
+  shareGroupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  shareLabelInline: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.4,
+    color: colors.placeholder,
+    textTransform: 'uppercase',
+  },
+  shareGroupBox: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    padding: 8,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+  },
+  shareGroupBoxView: {
+    backgroundColor: 'rgba(106,91,214,0.05)',
+    borderColor: 'rgba(106,91,214,0.15)',
+  },
+  shareGroupBoxEdit: {
+    backgroundColor: 'rgba(63,174,131,0.07)',
+    borderColor: 'rgba(63,174,131,0.22)',
+  },
+  shareChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: '100%',
+    paddingVertical: 5,
+    paddingLeft: 10,
+    paddingRight: 8,
+    borderRadius: radii.pill,
+  },
+  shareChipView: {
+    backgroundColor: 'rgba(106,91,214,0.13)',
+  },
+  shareChipEdit: {
+    backgroundColor: 'rgba(63,174,131,0.18)',
+  },
+  shareChipFailed: {
+    backgroundColor: 'rgba(226,83,107,0.16)',
+  },
+  shareChipText: {
+    flexShrink: 1,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+  },
+  shareChipTextView: {
+    color: '#4B3FB5',
+  },
+  shareChipTextEdit: {
+    color: '#1F5C42',
+  },
+  shareChipTextFailed: {
+    color: '#7A2639',
+  },
+  shareChipMove: {
+    backgroundColor: colors.white,
+    borderRadius: radii.pill,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
   },
   permissionOptionText: {
     fontFamily: fonts.body,
