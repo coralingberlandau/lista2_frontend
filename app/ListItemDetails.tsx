@@ -42,6 +42,7 @@ const ListItemDetails: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [permissionType, setPermissionType] = useState<string>('full_access');
   const [isAIModalVisible, setIsAIModalVisible] = useState(false);
+  const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
   const [aiStatus, setAiStatus] = useState<'loading' | 'ideas' | 'empty' | 'error'>('loading');
   const SERVER = "https://lista-backend-n3la.onrender.com"
 
@@ -905,12 +906,50 @@ const ListItemDetails: React.FC = () => {
               </TouchableOpacity>
             )}
             {isUpdateMode && permissionType === 'full_access' && (
-              <TouchableOpacity style={styles.iconContainer} onPress={() => handleDeleteItem()}>
+              <TouchableOpacity style={styles.iconContainer} onPress={() => setIsDeleteConfirmVisible(true)}>
                 <View style={styles.iconCircle}>
                   <AntDesign name="delete" size={17} color={colors.danger} />
                 </View>
                 <Text style={styles.iconLabel}>Delete</Text>
               </TouchableOpacity>
+            )}
+            {isDeleteConfirmVisible && (
+              <View style={styles.shareOverlay}>
+                <GlassCard style={styles.shareCard} contentStyle={styles.shareCardContent} tint={colors.glassBgStrong}>
+                  <TouchableOpacity style={styles.shareCloseButton} onPress={() => setIsDeleteConfirmVisible(false)}>
+                    <Ionicons name="close" size={18} color={colors.danger} />
+                  </TouchableOpacity>
+                  <Text style={styles.shareTitle}>Delete this list?</Text>
+                  <View style={styles.shareTitleRule} />
+                  <View style={styles.aiStateBox}>
+                    <View style={[styles.aiStateIcon, styles.aiStateIconError, styles.deleteConfirmIcon]}>
+                      <AntDesign name="delete" size={20} color={colors.danger} />
+                    </View>
+                    <Text style={styles.deleteConfirmName} numberOfLines={2}>
+                      {title || (listItem ? listItem.title : '')}
+                    </Text>
+                    <Text style={styles.aiStateText}>This list will be deleted.</Text>
+                    <Text style={styles.deleteConfirmWarning}>If it's shared, everyone loses access too.</Text>
+                  </View>
+                  <View style={styles.deleteConfirmButtons}>
+                    <TouchableOpacity
+                      style={[styles.deleteConfirmButton, styles.deleteCancelButton]}
+                      onPress={() => setIsDeleteConfirmVisible(false)}
+                    >
+                      <Text style={styles.deleteCancelText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.deleteConfirmButton, styles.deleteConfirmDanger]}
+                      onPress={() => {
+                        setIsDeleteConfirmVisible(false);
+                        handleDeleteItem();
+                      }}
+                    >
+                      <Text style={styles.deleteConfirmDangerText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </GlassCard>
+              </View>
             )}
           </View>
           {permissionType === 'full_access' && (
@@ -1150,6 +1189,57 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 13,
     color: colors.primary,
+  },
+  deleteConfirmIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    marginBottom: 10,
+  },
+  deleteConfirmName: {
+    fontFamily: fonts.displayItalic,
+    fontSize: 17,
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  deleteConfirmWarning: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12.5,
+    lineHeight: 19,
+    color: '#B13A52',
+    textAlign: 'center',
+    marginTop: 6,
+  },
+  deleteConfirmButtons: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
+  },
+  deleteConfirmButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 11,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+  },
+  deleteCancelButton: {
+    borderColor: 'rgba(106,91,214,0.45)',
+  },
+  deleteCancelText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13.5,
+    color: colors.primary,
+  },
+  deleteConfirmDanger: {
+    backgroundColor: colors.danger,
+    borderColor: colors.danger,
+  },
+  deleteConfirmDangerText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13.5,
+    color: '#fff',
   },
   aiLabelRow: {
     flexDirection: 'row',
