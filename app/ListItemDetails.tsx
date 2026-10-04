@@ -119,7 +119,7 @@ const ListItemDetails: React.FC = () => {
     if (!title.trim()) {
       Toast.show({
         type: 'error',
-        text1: 'Add a title to save your list',
+        text1: 'Add a title to save your list.',
       });
       return;
     }
