@@ -8,7 +8,6 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
-import { Picker } from '@react-native-picker/picker';
 import { ScrollView } from 'react-native-gesture-handler';
 import AppBackground from '@/components/AppBackground';
 import GlassCard from '@/components/GlassCard';
@@ -655,35 +654,46 @@ const ListItemDetails: React.FC = () => {
               </TouchableOpacity>
             )}
             {isModalVisible && (
-              <View style={styles.overlay}>
-                <GlassCard style={styles.modalCard} contentStyle={styles.modalContainer} tint={colors.glassBgStrong}>
-                  <Text style={styles.modalTitle}>Select Permission</Text>
-                  <View style={styles.pickerContainer}>
-                    <Picker
-                      selectedValue={permission}
-                      onValueChange={handlePermissionSelect}
-                      style={styles.picker}
+              <View style={styles.shareOverlay}>
+                <GlassCard style={styles.shareCard} contentStyle={styles.shareCardContent} tint={colors.glassBgStrong}>
+                  <TouchableOpacity
+                    style={styles.shareCloseButton}
+                    onPress={() => {
+                      setIsModalVisible(false);
+                    }}
+                  >
+                    <Ionicons name="close" size={18} color={colors.danger} />
+                  </TouchableOpacity>
+                  <Text style={styles.shareTitle}>Share list</Text>
+                  <View style={styles.shareTitleRule} />
+                  <Text style={styles.shareLabel}>Permission</Text>
+                  <View style={styles.permissionSwitch}>
+                    <TouchableOpacity
+                      style={[styles.permissionOption, permission === 'read_only' && styles.permissionOptionActive]}
+                      onPress={() => handlePermissionSelect('read_only')}
                     >
-                      <Picker.Item label="Read Only" value="read_only" />
-                      <Picker.Item label="Full Access" value="full_access" />
-                    </Picker>
+                      <Text style={[styles.permissionOptionText, permission === 'read_only' && styles.permissionOptionTextActive]}>
+                        Read Only
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.permissionOption, permission === 'full_access' && styles.permissionOptionActive]}
+                      onPress={() => handlePermissionSelect('full_access')}
+                    >
+                      <Text style={[styles.permissionOptionText, permission === 'full_access' && styles.permissionOptionTextActive]}>
+                        Full Access
+                      </Text>
+                    </TouchableOpacity>
                   </View>
+                  <Text style={styles.shareLabel}>Email</Text>
                   <TextInput
-                    placeholder="Enter a email"
+                    placeholder="Enter an email"
                     placeholderTextColor={colors.placeholder}
                     value={shareValue}
                     onChangeText={setShareValue}
                     style={styles.input}
                   />
                   <PrimaryButton title="Confirm Share" onPress={handleConfirmShare} style={styles.confirmButton} />
-                  <TouchableOpacity
-                    style={styles.closeButton}
-                    onPress={() => {
-                      setIsModalVisible(false);
-                    }}
-                  >
-                    <Text style={styles.closeButtonText}>Close</Text>
-                  </TouchableOpacity>
                 </GlassCard>
               </View>
             )}
@@ -801,8 +811,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   confirmButton: {
-    marginTop: 20,
-    marginBottom: 10,
+    marginTop: 0,
+    marginBottom: 0,
   },
   iconRowContainer: {
     flexDirection: 'row',
@@ -848,17 +858,90 @@ const styles = StyleSheet.create({
     padding: 20,
     margin: 20,
   },
-  pickerContainer: {
-    backgroundColor: colors.inputBg,
-    borderRadius: radii.sm,
-    marginBottom: 15,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.inputBorder,
+  shareOverlay: {
+    position: 'fixed' as any,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+    backgroundColor: 'rgba(38,34,59,0.35)',
   },
-  picker: {
-    height: 50,
-    width: '100%',
+  shareCard: {
+    width: '88%',
+    maxWidth: 380,
+    borderRadius: radii.xl,
+  },
+  shareCardContent: {
+    paddingHorizontal: 22,
+    paddingTop: 28,
+    paddingBottom: 22,
+  },
+  shareCloseButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(226,83,107,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  shareTitle: {
+    fontFamily: fonts.display,
+    fontSize: 26,
+    color: colors.text,
+    textAlign: 'center',
+  },
+  shareTitleRule: {
+    width: 32,
+    height: 1,
+    backgroundColor: colors.placeholder,
+    alignSelf: 'center',
+    marginTop: 8,
+    marginBottom: 18,
+  },
+  shareLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.4,
+    color: colors.placeholder,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  permissionSwitch: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(106,91,214,0.08)',
+    borderRadius: radii.md - 4,
+    padding: 4,
+    marginBottom: 16,
+  },
+  permissionOption: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 9,
+    borderRadius: radii.sm - 3,
+  },
+  permissionOptionActive: {
+    backgroundColor: colors.white,
+    ...shadows.soft,
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  permissionOptionText: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.textMuted,
+  },
+  permissionOptionTextActive: {
+    fontFamily: fonts.bodySemiBold,
+    color: colors.text,
   },
   input: {
     height: 48,
@@ -866,7 +949,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: radii.sm,
     paddingHorizontal: 14,
-    marginBottom: 20,
+    marginBottom: 18,
     backgroundColor: colors.inputBg,
     fontFamily: fonts.body,
     color: colors.text,
