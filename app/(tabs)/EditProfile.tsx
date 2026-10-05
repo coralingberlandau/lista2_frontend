@@ -94,7 +94,7 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
                     await AsyncStorage.setItem('userName', username);
                     Toast.show({
                         type: 'success',
-                        text1: 'Your profile has been updated successfully!',
+                        text1: 'Your profile was updated.',
                     });
                     setIsLoggedIn(true);
                     navigation.goBack();

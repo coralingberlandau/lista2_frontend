@@ -88,7 +88,7 @@ const Register: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null
           Alert.alert('Registration Successful', 'You can now log in.');
           Toast.show({
             type: 'success',
-            text1: 'The user has been saved successfully!',
+            text1: 'Your account was created.',
           });
 
           setIsLoggedIn(true);

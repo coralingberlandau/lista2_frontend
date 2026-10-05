@@ -110,7 +110,7 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
 
           Toast.show({
             type: 'success',
-            text1: 'Background changed successfully!',
+            text1: 'Background updated.',
           });
         } catch (error) {
           console.error('Error:', error);

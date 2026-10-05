@@ -166,7 +166,7 @@ const ListItemDetails: React.FC = () => {
 
         Toast.show({
           type: 'success',
-          text1: 'The list has been saved successfully!',
+          text1: 'Your list was saved.',
         });
 
         navigation.navigate('Home');
@@ -366,7 +366,7 @@ const ListItemDetails: React.FC = () => {
       if (failed.length === 0) {
         Toast.show({
           type: 'success',
-          text1: sharedCount === 1 ? 'List shared successfully!' : `List shared with ${sharedCount} people.`,
+          text1: sharedCount === 1 ? 'List shared.' : `List shared with ${sharedCount} people.`,
         });
         setSharePeople([]);
         setIsModalVisible(false);
@@ -456,7 +456,7 @@ const ListItemDetails: React.FC = () => {
 
       Toast.show({
         type: 'success',
-        text1: 'The item has been deleted successfully!',
+        text1: 'Your list was deleted.',
       });
 
       setIsMenuVisible(false);
@@ -498,7 +498,7 @@ const ListItemDetails: React.FC = () => {
       listItem && await handleSaveImages(listItem.id)
       Toast.show({
         type: 'success',
-        text1: 'The list has been updated successfully!',
+        text1: 'Your list was updated.',
       });
 
       navigation.navigate('Home');
