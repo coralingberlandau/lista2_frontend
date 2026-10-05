@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
@@ -13,6 +13,7 @@ import AppBackground from '@/components/AppBackground';
 import AuroraDotsLoader from '@/components/AuroraDotsLoader';
 import GlassCard from '@/components/GlassCard';
 import { colors, fonts, radii, shadows, progressGradient } from '@/constants/theme';
+import { describeError } from '@/utils/describeError';
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'ListItemDetails'>;
 
@@ -64,7 +65,14 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
       }
     } catch (error) {
       console.error('Error fetching user list items:', error);
-      Alert.alert('Error', 'Failed to fetch your list items. Please try again later.');
+      Toast.show({
+        type: 'error',
+        text1: "Couldn't load your lists",
+        text2:
+          error instanceof Error && error.message === 'No token found'
+            ? 'Your session expired. Please log in again.'
+            : describeError(error),
+      });
     } finally {
       setLoading(false);
     }
@@ -85,8 +93,8 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
       console.error('Error logging out:', error);
       Toast.show({
         type: 'error',
-        text1: 'Error logging out',
-        text2: 'Please try again later',
+        text1: "Couldn't log you out",
+        text2: 'Please try again.',
       });
     }
   };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
 import axios from 'axios';
 import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
@@ -9,7 +9,9 @@ import { Ionicons } from '@expo/vector-icons';
 import AuroraBackground from '@/components/AuroraBackground';
 import GlassCard from '@/components/GlassCard';
 import PrimaryButton from '@/components/PrimaryButton';
+import Toast from 'react-native-toast-message';
 import { colors, fonts, radii } from '@/constants/theme';
+import { describeError } from '@/utils/describeError';
 
 type NavigationProps = StackNavigationProp<RootStackParamList>;
 
@@ -53,10 +55,11 @@ const ResetPassword: React.FC = () => {
       setMessage('A reset link has been sent to your email.');
     } catch (error: any) {
       console.error('Error:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to send reset link. Please try again.'
-      );
+      Toast.show({
+        type: 'error',
+        text1: "Couldn't send the reset link",
+        text2: error.response?.data?.message || describeError(error),
+      });
     } finally {
       setLoading(false);
     }

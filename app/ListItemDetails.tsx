@@ -14,6 +14,7 @@ import AuroraDotsLoader from '@/components/AuroraDotsLoader';
 import GlassCard from '@/components/GlassCard';
 import PrimaryButton from '@/components/PrimaryButton';
 import { colors, fonts, radii, shadows } from '@/constants/theme';
+import { describeError } from '@/utils/describeError';
 
 type ListItemDetailsRouteProp = RouteProp<RootStackParamList, 'ListItemDetails'>;
 
@@ -174,8 +175,8 @@ const ListItemDetails: React.FC = () => {
         console.error('Error adding list item:', error);
         Toast.show({
           type: 'error',
-          text1: 'Error adding the item',
-          text2: 'Please try again later',
+          text1: "Couldn't save your list",
+          text2: describeError(error),
         });
       }
     };
@@ -338,6 +339,7 @@ const ListItemDetails: React.FC = () => {
       let sharedCount = 0;
       const notFound: string[] = [];
       const otherFailed: string[] = [];
+      let otherReason = '';
 
       for (const person of people) {
         try {
@@ -352,6 +354,7 @@ const ListItemDetails: React.FC = () => {
             notFound.push(person.email);
           } else {
             otherFailed.push(person.email);
+            otherReason = describeError(error);
           }
         }
       }
@@ -377,7 +380,7 @@ const ListItemDetails: React.FC = () => {
         details.push(`Couldn't find: ${notFound.join(', ')}. They need to join Lista first, then share again.`);
       }
       if (otherFailed.length > 0) {
-        details.push(`Something went wrong for: ${otherFailed.join(', ')}. Please try again later.`);
+        details.push(`Couldn't share with ${otherFailed.join(', ')}. ${otherReason}`);
       }
       Toast.show({
         type: 'error',
@@ -391,7 +394,8 @@ const ListItemDetails: React.FC = () => {
     } else {
       Toast.show({
         type: 'error',
-        text1: 'User ID or token not found. Please log in again.',
+        text1: 'Your session expired.',
+        text2: 'Please log in again.',
       });
     }
   };
@@ -466,8 +470,8 @@ const ListItemDetails: React.FC = () => {
       }
       Toast.show({
         type: 'error',
-        text1: 'Error deleting the item',
-        text2: 'Please try again later',
+        text1: "Couldn't delete your list",
+        text2: describeError(error),
       });
     }
   }
@@ -507,8 +511,8 @@ const ListItemDetails: React.FC = () => {
       }
       Toast.show({
         type: 'error',
-        text1: 'Error updating the item',
-        text2: 'Please try again later',
+        text1: "Couldn't update your list",
+        text2: describeError(error),
       });
     }
   };

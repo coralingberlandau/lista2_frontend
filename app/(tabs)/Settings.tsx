@@ -22,6 +22,7 @@ import {
   CUSTOM_BACKGROUND_URI_KEY,
 } from '@/constants/gradientBackgrounds';
 import { colors, fonts, radii } from '@/constants/theme';
+import { describeError } from '@/utils/describeError';
 
 type Swatch =
   | { kind: 'default' }
@@ -60,8 +61,8 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
       console.error('Error logging out:', error);
       Toast.show({
         type: 'error',
-        text1: 'Error logging out',
-        text2: 'Please try again later',
+        text1: "Couldn't log you out",
+        text2: 'Please try again.',
       });
     }
   };
@@ -115,7 +116,8 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
           console.error('Error:', error);
           Toast.show({
             type: 'error',
-            text1: 'An error occurred. Please try again later.',
+            text1: "Couldn't save your background",
+            text2: describeError(error),
           });
         }
       }, 500),
@@ -134,6 +136,7 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
       Toast.show({
         type: 'error',
         text1: 'Photo library access is needed to pick a background.',
+        text2: 'Allow photo access in your browser or device settings.',
       });
       return;
     }
