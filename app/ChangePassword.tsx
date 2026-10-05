@@ -61,7 +61,7 @@ const ChangePassword: React.FC = () => {
         email,
         password,
       });
-      setMessage('Password has been changed successfully!');
+      setMessage('Password changed. Log in with your new one.');
       setTimeout(() => {
         navigation.navigate('Login');
       }, 2000);
