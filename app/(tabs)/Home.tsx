@@ -148,17 +148,6 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
                           <Text style={styles.badgeText}>{done}/{total}</Text>
                         </LinearGradient>
                       </View>
-                      <Text numberOfLines={2} ellipsizeMode="tail" style={styles.descriptionText}>
-                        {item.items.split('|').map((line, index, lines) => (
-                          <Text
-                            key={index}
-                            style={line.includes('✔️') && styles.descriptionDone}
-                          >
-                            {line}
-                            {index < lines.length - 1 ? ' · ' : ''}
-                          </Text>
-                        ))}
-                      </Text>
                       <View style={styles.progressTrack}>
                         <LinearGradient
                           colors={gradient}
@@ -281,17 +270,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 17,
     color: colors.text,
-  },
-  descriptionText: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.textMuted,
-    marginTop: 8,
-  },
-  descriptionDone: {
-    textDecorationLine: 'line-through',
-    opacity: 0.6,
   },
   loadingContainer: {
     marginTop: 60,
