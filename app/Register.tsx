@@ -1,5 +1,5 @@
 import React, { Dispatch, SetStateAction, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Input from '@/components/Input';
@@ -85,7 +85,6 @@ const Register: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null
           await AsyncStorage.setItem('userId', userId.toString());
           await AsyncStorage.setItem('userName', username);
 
-          Alert.alert('Registration Successful', 'You can now log in.');
           Toast.show({
             type: 'success',
             text1: 'Your account was created.',
