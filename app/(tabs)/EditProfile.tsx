@@ -11,6 +11,7 @@ import AuroraBackground from '@/components/AuroraBackground';
 import GlassCard from '@/components/GlassCard';
 import PrimaryButton from '@/components/PrimaryButton';
 import { colors, fonts, radii } from '@/constants/theme';
+import { API_URL } from '@/constants/config';
 
 type EditProfileProps = {
     setIsLoggedIn: Dispatch<SetStateAction<boolean | null>>;
@@ -27,7 +28,7 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
     const [userId, setUserId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [saving, setSaving] = useState(false);
-    const SERVER = "https://lista-backend-n3la.onrender.com"
+    const SERVER = API_URL;
 
 
 
@@ -41,7 +42,12 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
 
             if (userId) {
                 try {
-                    const response = await axios.get(`${SERVER}/user/${userId}/`);
+                    // The profile is private: the backend only answers a logged-in user
+                    // asking for their own profile, so the login token is required.
+                    const token = await AsyncStorage.getItem('token');
+                    const response = await axios.get(`${SERVER}/user/${userId}/`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
                     setFirstName(response.data.first_name);
                     setLastName(response.data.last_name);
                     setEmail(response.data.email);
@@ -83,11 +89,14 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
         if (userId) {
             setSaving(true);
             try {
+                const token = await AsyncStorage.getItem('token');
                 const response = await axios.patch(`${SERVER}/user/${userId}/`, {
                     username,
                     first_name: firstName,
                     last_name: lastName,
                     email,
+                }, {
+                    headers: { Authorization: `Bearer ${token}` },
                 });
 
                 if (response.status === 200) {

@@ -14,6 +14,7 @@ import AuroraBackground from '@/components/AuroraBackground';
 import GlassCard from '@/components/GlassCard';
 import PrimaryButton from '@/components/PrimaryButton';
 import { colors, fonts, radii } from '@/constants/theme';
+import { API_URL } from '@/constants/config';
 
 type RegisterScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Register'>;
 
@@ -29,7 +30,7 @@ const Register: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null
   const [error, setError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const SERVER = "https://lista-backend-n3la.onrender.com"
+  const SERVER = API_URL;
 
 
   const allFieldsFilled: boolean =
@@ -82,6 +83,10 @@ const Register: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null
           }
 
           await AsyncStorage.setItem('token', accessToken);
+          if (response.data.refresh) {
+            // Lets the app renew the short-lived access token without logging in again.
+            await AsyncStorage.setItem('refreshToken', response.data.refresh);
+          }
           await AsyncStorage.setItem('userId', userId.toString());
           await AsyncStorage.setItem('userName', username);
 

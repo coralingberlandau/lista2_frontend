@@ -11,6 +11,7 @@ import GlassCard from '@/components/GlassCard';
 import PrimaryButton from '@/components/PrimaryButton';
 import Toast from 'react-native-toast-message';
 import { colors, fonts, radii } from '@/constants/theme';
+import { API_URL } from '@/constants/config';
 import { describeError } from '@/utils/describeError';
 
 type NavigationProps = StackNavigationProp<RootStackParamList>;
@@ -21,7 +22,7 @@ const ResetPassword: React.FC = () => {
   const [message, setMessage] = useState<string>('');
   const [errorText, setErrorText] = useState<string>('');
   const navigation = useNavigation<NavigationProps>();
-  const SERVER = "https://lista-backend-n3la.onrender.com"
+  const SERVER = API_URL;
 
 
   const isValidEmail = (email: string): boolean => {
@@ -58,7 +59,9 @@ const ResetPassword: React.FC = () => {
       Toast.show({
         type: 'error',
         text1: "Couldn't send the reset link",
-        text2: error.response?.data?.message || describeError(error),
+        // For 400/404 the server explains what is wrong (e.g. no account with this email).
+        text2: ([400, 404].includes(error.response?.status) && error.response?.data?.error) ||
+          describeError(error),
       });
     } finally {
       setLoading(false);

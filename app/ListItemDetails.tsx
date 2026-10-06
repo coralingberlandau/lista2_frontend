@@ -14,6 +14,7 @@ import AuroraDotsLoader from '@/components/AuroraDotsLoader';
 import GlassCard from '@/components/GlassCard';
 import PrimaryButton from '@/components/PrimaryButton';
 import { colors, fonts, radii, shadows } from '@/constants/theme';
+import { API_URL } from '@/constants/config';
 import { describeError } from '@/utils/describeError';
 
 type ListItemDetailsRouteProp = RouteProp<RootStackParamList, 'ListItemDetails'>;
@@ -45,7 +46,7 @@ const ListItemDetails: React.FC = () => {
   const [isAIModalVisible, setIsAIModalVisible] = useState(false);
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
   const [aiStatus, setAiStatus] = useState<'loading' | 'ideas' | 'empty' | 'error'>('loading');
-  const SERVER = "https://lista-backend-n3la.onrender.com"
+  const SERVER = API_URL;
 
 
   useFocusEffect(

@@ -13,3 +13,8 @@ web-build/
 # macOS
 .DS_Store
 
+
+# Local settings (copy .env.example to .env.local)
+.env
+.env.local
+.env*.local

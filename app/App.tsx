@@ -25,6 +25,7 @@ import ResetPassword from './ResetPassword';
 import EditProfile from './(tabs)/EditProfile';
 import ChangePassword from './ChangePassword';
 import { colors, fonts } from '@/constants/theme';
+import { setSessionExpiredHandler } from '@/utils/authSession';
 
 const Tab = createBottomTabNavigator<RootStackParamList>();
 
@@ -57,6 +58,13 @@ const App: React.FC = () => {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
+
+  // When the saved login can no longer be renewed (see utils/authSession.ts), send the
+  // user back to the Login screen instead of leaving them on a screen that can't load.
+  useEffect(() => {
+    setSessionExpiredHandler(() => setIsLoggedIn(false));
+    return () => setSessionExpiredHandler(null);
+  }, []);
 
   useEffect(() => {
     const checkLogin = async () => {

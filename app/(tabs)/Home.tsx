@@ -13,6 +13,7 @@ import AppBackground from '@/components/AppBackground';
 import AuroraDotsLoader from '@/components/AuroraDotsLoader';
 import GlassCard from '@/components/GlassCard';
 import { colors, fonts, radii, shadows, progressGradient } from '@/constants/theme';
+import { API_URL } from '@/constants/config';
 import { describeError } from '@/utils/describeError';
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'ListItemDetails'>;
@@ -26,7 +27,7 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
   const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const navigation = useNavigation<NavigationProp>();
-  const SERVER = "https://lista-backend-n3la.onrender.com"
+  const SERVER = API_URL;
 
 
   useFocusEffect(
@@ -88,6 +89,7 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('refreshToken');
       setIsLoggedIn(false);
     } catch (error) {
       console.error('Error logging out:', error);

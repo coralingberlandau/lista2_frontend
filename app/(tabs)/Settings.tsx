@@ -22,6 +22,7 @@ import {
   CUSTOM_BACKGROUND_URI_KEY,
 } from '@/constants/gradientBackgrounds';
 import { colors, fonts, radii } from '@/constants/theme';
+import { API_URL } from '@/constants/config';
 import { describeError } from '@/utils/describeError';
 
 type Swatch =
@@ -42,7 +43,7 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
   const navigation = useNavigation<EditProfileScreenNavigationProp>();
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
   const [customUri, setCustomUri] = useState<string | null>(null);
-  const SERVER = "https://lista-backend-n3la.onrender.com"
+  const SERVER = API_URL;
 
 
   const navigateToEditProfile = () => {
@@ -56,6 +57,7 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('refreshToken');
       setIsLoggedIn(false);
     } catch (error) {
       console.error('Error logging out:', error);

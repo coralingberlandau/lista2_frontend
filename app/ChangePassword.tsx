@@ -11,11 +11,13 @@ import GlassCard from '@/components/GlassCard';
 import PrimaryButton from '@/components/PrimaryButton';
 import Toast from 'react-native-toast-message';
 import { colors, fonts, radii } from '@/constants/theme';
+import { API_URL } from '@/constants/config';
 import { describeError } from '@/utils/describeError';
 
 type NavigationProps = StackNavigationProp<RootStackParamList>;
 type RootStackParamList = {
-  ChangePassword: { email: string };
+  // `email` and `token` both come from the link in the password-reset email.
+  ChangePassword: { email: string; token?: string };
   Login: undefined;
 };
 
@@ -29,8 +31,8 @@ const ChangePassword: React.FC = () => {
   const [errorText, setErrorText] = useState<string>('');
   const navigation = useNavigation<NavigationProps>();
   const route = useRoute<ChangePasswordRouteProp>();
-  const { email } = route.params;
-  const SERVER = "https://lista-backend-n3la.onrender.com"
+  const { email, token } = route.params;
+  const SERVER = API_URL;
 
 
   const validatePasswords = (): boolean => {
@@ -43,6 +45,13 @@ const ChangePassword: React.FC = () => {
 
   const handleChangePassword = async () => {
     setErrorText('');
+
+    // The reset link in the email carries a single-use token; without it the server
+    // would refuse the change, so say so up front.
+    if (!token) {
+      setErrorText('This reset link is incomplete. Please request a new one.');
+      return;
+    }
 
     if (!password || !confirmPassword) {
       setErrorText('Please fill in both fields.');
@@ -59,6 +68,7 @@ const ChangePassword: React.FC = () => {
     try {
       const response = await axios.post(`${SERVER}/reset_password/`, {
         email,
+        token,
         password,
       });
       setMessage('Password changed. Log in with your new one.');
@@ -70,7 +80,9 @@ const ChangePassword: React.FC = () => {
       Toast.show({
         type: 'error',
         text1: "Couldn't change your password",
-        text2: error.response?.data?.message || describeError(error),
+        // For 400/404 the server explains what is wrong (e.g. the link expired).
+        text2: ([400, 404].includes(error.response?.status) && error.response?.data?.error) ||
+          describeError(error),
       });
     } finally {
       setLoading(false);

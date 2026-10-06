@@ -8,7 +8,7 @@ export type RootStackParamList = {
   ListItemDetails?: { listItem: ListItem }; 
   ResetPassword: undefined; 
   EditProfile: { userId: string } | undefined; 
-  ChangePassword: { email: string };
+  ChangePassword: { email: string; token?: string };
 };
 
 export interface JwtPayload {
