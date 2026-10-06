@@ -4,11 +4,11 @@
     "slug": "lista",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/lista.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "http://localhost:8081/",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/lista.png",
+      "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -17,13 +17,14 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/lista.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundImage": "./assets/images/adaptive-background.png",
+        "backgroundColor": "#8B7EF0"
       }
     },
     "web": {
       "bundler": "metro",
-      "favicon": "./assets/images/lista.png",
+      "favicon": "./assets/images/favicon.png",
       "linking": {
         "enabled": true,
         "prefixes": ["https://lista-project.netlify.app/"],
