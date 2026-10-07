@@ -1,12 +1,25 @@
 [build]
   publish = "dist"
-  command = "npx expo export"
+  # The site is built for the web only (the default would also bundle iOS and Android).
+  command = "npx expo export -p web"
+
+[build.environment]
+  NODE_VERSION = "20"
 
 [functions]
   directory = "netlify/functions"
 
+# The AI suggestions function must never be rewritten by the catch-all rule below.
 [[redirects]]
-  from = "/change-password"
-  to = "/ChangePassword"
+  from = "/.netlify/functions/*"
+  to = "/.netlify/functions/:splat"
   status = 200
-  force = true
+
+# Lista is a single-page app: the build contains one index.html and the app works out the
+# screen from the address. Answering every other address with index.html makes page
+# reloads and the password-reset link (/change-password?email=...&token=...) work.
+# Real files such as the icons and /manifest.json are still served as they are.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -2,7 +2,11 @@
 // Keeps the Gemini API key server-side (set as GEMINI_API_KEY in the Netlify dashboard),
 // never exposed to the app bundle.
 
-const GEMINI_MODEL = 'gemini-1.5-flash';
+// The Gemini model to use. Google retires models regularly (gemini-1.5-flash no longer
+// exists), so it can be changed without touching code: set GEMINI_MODEL in the Netlify
+// dashboard (Site configuration > Environment variables). Check Google's current list of
+// models at https://ai.google.dev/gemini-api/docs/models
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
