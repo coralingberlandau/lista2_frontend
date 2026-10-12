@@ -16,6 +16,7 @@ import PrimaryButton from '@/components/PrimaryButton';
 import { colors, fonts, radii, shadows } from '@/constants/theme';
 import { API_URL } from '@/constants/config';
 import { describeError } from '@/utils/describeError';
+import { shrinkImage } from '@/utils/resizeImage';
 
 type ListItemDetailsRouteProp = RouteProp<RootStackParamList, 'ListItemDetails'>;
 
@@ -163,12 +164,21 @@ const ListItemDetails: React.FC = () => {
           },
         });
 
-        await handleSaveImages(itemId)
+        const imageProblem = await handleSaveImages(itemId)
 
-        Toast.show({
-          type: 'success',
-          text1: 'Your list was saved.',
-        });
+        if (imageProblem) {
+          // The list itself is saved; only the picture(s) were not.
+          Toast.show({
+            type: 'error',
+            text1: "Your list was saved, but a picture wasn't",
+            text2: imageProblem,
+          });
+        } else {
+          Toast.show({
+            type: 'success',
+            text1: 'Your list was saved.',
+          });
+        }
 
         navigation.navigate('Home');
 
@@ -496,11 +506,20 @@ const ListItemDetails: React.FC = () => {
         }
       );
 
-      listItem && await handleSaveImages(listItem.id)
-      Toast.show({
-        type: 'success',
-        text1: 'Your list was updated.',
-      });
+      const imageProblem = listItem ? await handleSaveImages(listItem.id) : null
+      if (imageProblem) {
+        // The list itself is saved; only the picture change(s) were not.
+        Toast.show({
+          type: 'error',
+          text1: "Your list was updated, but a picture wasn't",
+          text2: imageProblem,
+        });
+      } else {
+        Toast.show({
+          type: 'success',
+          text1: 'Your list was updated.',
+        });
+      }
 
       navigation.navigate('Home');
     } catch (error: unknown) {
@@ -527,10 +546,25 @@ const ListItemDetails: React.FC = () => {
     console.log('result images', result);
 
     if (!result.canceled && result.assets) {
+      const asset = result.assets[0];
+      // Shrink big photos before they are kept for upload (the server refuses very large uploads).
+      let picture;
+      try {
+        picture = await shrinkImage(asset.uri);
+      } catch (error) {
+        console.error('Could not process the picture:', error);
+        Toast.show({
+          type: 'error',
+          text1: "Couldn't use this picture",
+          text2: 'Try a JPEG or PNG picture.',
+        });
+        return;
+      }
       const newImage: ImageData = {
-        uri: result.assets[0].uri,
-        fileName: result.assets[0].fileName || `image_${index}.jpeg`,
-        mimeType: result.assets[0].type || 'image/jpeg',
+        uri: picture.uri,
+        // The server adds the file extension itself, so keep the name without one.
+        fileName: (asset.fileName || `image_${index}`).replace(/\.[^.]+$/, ''),
+        mimeType: picture.mimeType,
         index: index,
       };
 
@@ -538,7 +572,25 @@ const ListItemDetails: React.FC = () => {
     }
   };
 
-  const handleSaveImages = async (listItemId: number) => {
+  // Explains, in one short sentence, why a picture could not be saved.
+  const describeImageError = (error: unknown): string => {
+    if (axios.isAxiosError(error) && error.response) {
+      if (error.response.status === 413) return 'That picture is too large. Choose a smaller one.';
+      if (error.response.status === 400) return "That picture couldn't be read. Try a different one.";
+    }
+    return describeError(error);
+  };
+
+  // Saves the picture changes of a list. Returns null when everything was saved, or a short
+  // message explaining what went wrong (so the caller can tell the user instead of claiming success).
+  const handleSaveImages = async (listItemId: number): Promise<string | null> => {
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      return 'Your session expired. Please log in again.';
+    }
+    const authHeader = { Authorization: `Bearer ${token}` };
+    let problem: string | null = null;
+
     if (isUpdateMode && (deletedImagesIndex.length > 0 || updatedImagesIndex.length > 0)) {
       try {
         console.log({ deletedImagesIndex, updatedImagesIndex })
@@ -549,11 +601,15 @@ const ListItemDetails: React.FC = () => {
             updatedImagesIndex: updatedImagesIndex
           }, {
           headers: {
+            ...authHeader,
             'Content-Type': 'multipart/form-data',
           },
         });
       }
-      catch { }
+      catch (error) {
+        console.error('Error updating pictures', error);
+        problem = describeImageError(error);
+      }
     }
 
     const formData = new FormData();
@@ -575,17 +631,18 @@ const ListItemDetails: React.FC = () => {
     }
     if (formData.has('images')) {
       try {
-        const response = await axios.post(`${SERVER}/listitemimages/upload_images/`, formData, {
+        await axios.post(`${SERVER}/listitemimages/upload_images/`, formData, {
           headers: {
+            ...authHeader,
             'Content-Type': 'multipart/form-data',
           },
         });
-        console.log('response', response);
-        return response.data;
       } catch (error) {
         console.error('Error uploading images', error);
+        problem = describeImageError(error);
       }
     }
+    return problem;
   };
   const handleShowLargeImage = (index: number) => {
     const selectedImage = images.find((img) => img.index === index);
