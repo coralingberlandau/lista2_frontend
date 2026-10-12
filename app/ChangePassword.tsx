@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import axios from 'axios';
 import { ScrollView } from 'react-native-gesture-handler';
 import { RouteProp, useNavigation } from '@react-navigation/native';
@@ -26,6 +26,9 @@ type ChangePasswordRouteProp = RouteProp<RootStackParamList, 'ChangePassword'>;
 const ChangePassword: React.FC = () => {
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
+  // Show/hide toggles, one per field (same eye icon as the Login and Register screens).
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [message, setMessage] = useState<string>('');
   const [errorText, setErrorText] = useState<string>('');
@@ -107,7 +110,13 @@ const ChangePassword: React.FC = () => {
               placeholderTextColor={colors.placeholder}
               value={password}
               onChangeText={setPassword}
-              secureTextEntry />
+              secureTextEntry={!showPassword} />
+            <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)} hitSlop={8}>
+              <Ionicons
+                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                size={20}
+                color={colors.placeholder} />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.inputContainer}>
@@ -122,7 +131,13 @@ const ChangePassword: React.FC = () => {
               placeholderTextColor={colors.placeholder}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              secureTextEntry />
+              secureTextEntry={!showConfirmPassword} />
+            <TouchableOpacity onPress={() => setShowConfirmPassword((prev) => !prev)} hitSlop={8}>
+              <Ionicons
+                name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                size={20}
+                color={colors.placeholder} />
+            </TouchableOpacity>
           </View>
 
           <PrimaryButton
@@ -191,6 +206,7 @@ const styles = StyleSheet.create({
     borderColor: colors.inputBorder,
     borderRadius: radii.md,
     paddingLeft: 14,
+    paddingRight: 14,
   },
   input: {
     flex: 1,
