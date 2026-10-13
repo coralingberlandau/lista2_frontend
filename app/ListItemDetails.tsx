@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, Image, FlatList, useWindowDimensions } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, FlatList, PanResponder } from 'react-native';
 import { RouteProp, useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { ImageData, ListItem, RootStackParamList, User } from './type';
 import { Ionicons, AntDesign, FontAwesome, Feather } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import axios from 'axios';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { ScrollView } from 'react-native-gesture-handler';
 import AppBackground from '@/components/AppBackground';
@@ -34,28 +35,44 @@ const ListItemDetails: React.FC = () => {
   const [failedEmails, setFailedEmails] = useState<string[]>([]);
   const [isSharing, setIsSharing] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [largeImage, setLargeImage] = useState<string | null>(null);
+  // Pictures of the list, one per row at most (a row is identified by its position).
   const [images, setImages] = useState<ImageData[]>([]);
-  const { width, height } = useWindowDimensions();
+  // The pictures as the server has them, to know whether anything changed when saving.
+  const loadedPictures = useRef<{ id: number; index: number }[]>([]);
+  // Row currently shown in the picture viewer (null = viewer closed).
+  const [viewerRow, setViewerRow] = useState<number | null>(null);
+  const viewerRowRef = useRef<number | null>(null);
+  const itemCountRef = useRef(0);
+  // Swiping left or right in the viewer moves to the next or previous row (no wrap-around).
+  const swipeResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_event, gesture) =>
+        Math.abs(gesture.dx) > 20 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5,
+      onPanResponderRelease: (_event, gesture) => {
+        const row = viewerRowRef.current;
+        if (row === null) return;
+        if (gesture.dx < -50 && row < itemCountRef.current - 1) setViewerRow(row + 1);
+        else if (gesture.dx > 50 && row > 0) setViewerRow(row - 1);
+      },
+    })
+  ).current;
   const [recommendations, setRecommendations] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [updatedImagesIndex, setUpdatedImagesIndex] = useState<string[]>([])
-  const [deletedImagesIndex, setDeletedImagesIndex] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null);
   const [permissionType, setPermissionType] = useState<string>('full_access');
   const [isAIModalVisible, setIsAIModalVisible] = useState(false);
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
   const [aiStatus, setAiStatus] = useState<'loading' | 'ideas' | 'empty' | 'error'>('loading');
   const SERVER = API_URL;
+  viewerRowRef.current = viewerRow;
+  itemCountRef.current = items.length;
 
 
   useFocusEffect(
     useCallback(() => {
       setTitle(listItem?.title || '');
       setItems(listItem?.items.split("|") || ['']);
-      setUpdatedImagesIndex([])
-      setDeletedImagesIndex([])
+      setViewerRow(null)
       getImages()
       fetchPermissionType();
     }, [listItem])
@@ -229,29 +246,15 @@ const ListItemDetails: React.FC = () => {
     );
   };
 
-  const handleRemoveImages = (index: number, imageToRemove: ImageData) => {
-    const newImages = images.filter((image) => image.index !== index)
-    setImages(newImages);
-    setDeletedImagesIndex(prev => [...prev, imageToRemove.index.toString()])
-  }
-
   const handleRemoveItem = (index: number) => {
-    const newItems = [...items];
-    newItems.splice(index, 1);
-    setItems(newItems);
-    const imageToRemove = images.filter((image: ImageData) => image.index === index)
-    const updateImages = images.filter((image: ImageData) => image.index !== index)
-    if (imageToRemove && imageToRemove.length > 0) {
-      handleRemoveImages(index, imageToRemove[0])
-    }
-    updateImages.forEach((image) => {
-      if (image.index > index) {
-        const imgeIndex = image.index
-        setUpdatedImagesIndex(prev => [...prev, imgeIndex.toString()])
-        image.index--
-      }
-    })
-    setImages(updateImages)
+    setItems((prev) => prev.filter((_, row) => row !== index));
+    // The row's own picture goes with it, and the pictures of the rows below move up with
+    // their rows, so every picture stays with the item it belongs to.
+    setImages((prev) =>
+      prev
+        .filter((image) => image.index !== index)
+        .map((image) => (image.index > index ? { ...image, index: image.index - 1 } : image))
+    );
   };
 
   const handleSharePress = () => {
@@ -434,16 +437,20 @@ const ListItemDetails: React.FC = () => {
             };
           });
           setImages(formattedImages);
+          loadedPictures.current = formattedImages.map((image: ImageData) => ({ id: image.id as number, index: image.index }));
         } else {
           console.error("Invalid response format:", response.data);
           setImages([]);
+          loadedPictures.current = [];
         }
       } else {
         setImages([]);
+        loadedPictures.current = [];
       }
     } catch (error) {
       console.error("Error fetching images:", error);
       setImages([]);
+      loadedPictures.current = [];
     }
   };
 
@@ -508,12 +515,15 @@ const ListItemDetails: React.FC = () => {
 
       const imageProblem = listItem ? await handleSaveImages(listItem.id) : null
       if (imageProblem) {
-        // The list itself is saved; only the picture change(s) were not.
+        // The list text is saved; the picture changes were not (and nothing about the pictures
+        // changed on the server). Stay here with the pictures still in place so the user can
+        // press Update List again, which is safe to repeat.
         Toast.show({
           type: 'error',
-          text1: "Your list was updated, but a picture wasn't",
-          text2: imageProblem,
+          text1: "Your list was updated, but the pictures weren't",
+          text2: `${imageProblem} Your pictures are still here.`,
         });
+        return;
       } else {
         Toast.show({
           type: 'success',
@@ -537,7 +547,9 @@ const ListItemDetails: React.FC = () => {
     }
   };
 
-  const handleAddImage = async (index: number) => {
+  // Lets the user pick a picture for a row, shrinks it, and puts it on that row (replacing the
+  // row's current picture, if any). Nothing is saved until Update List is pressed.
+  const choosePictureForRow = async (index: number) => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -566,97 +578,81 @@ const ListItemDetails: React.FC = () => {
         fileName: (asset.fileName || `image_${index}`).replace(/\.[^.]+$/, ''),
         mimeType: picture.mimeType,
         index: index,
+        isNew: true,
       };
 
-      setImages([...images, newImage]);
+      setImages((prev) => [...prev.filter((image) => image.index !== index), newImage]);
     }
   };
 
   // Explains, in one short sentence, why a picture could not be saved.
   const describeImageError = (error: unknown): string => {
     if (axios.isAxiosError(error) && error.response) {
-      if (error.response.status === 413) return 'That picture is too large. Choose a smaller one.';
-      if (error.response.status === 400) return "That picture couldn't be read. Try a different one.";
+      const { status, data } = error.response;
+      const serverMessage = typeof data?.error === 'string' ? data.error : null;
+      // The server explains picture problems in plain words; show them as they are.
+      if ((status === 400 || status === 413) && serverMessage) return serverMessage;
+      if (status === 413) return 'That picture is too large. Choose a smaller one.';
+      if (status === 400) return "That picture couldn't be read. Try a different one.";
     }
     return describeError(error);
   };
 
-  // Saves the picture changes of a list. Returns null when everything was saved, or a short
-  // message explaining what went wrong (so the caller can tell the user instead of claiming success).
+  // Saves all the picture changes of a list in ONE request that the server applies completely
+  // or not at all. Returns null when everything was saved (or nothing changed), or a short
+  // message explaining what went wrong, so the caller can tell the user instead of claiming
+  // success. Because it is all-or-nothing, trying again is always safe.
   const handleSaveImages = async (listItemId: number): Promise<string | null> => {
+    const kept = images
+      .filter((image) => !image.isNew && image.id)
+      .map((image) => ({ id: image.id as number, index: image.index }));
+    const added = images.filter((image) => image.isNew);
+    const loaded = loadedPictures.current;
+    const nothingChanged =
+      added.length === 0 &&
+      kept.length === loaded.length &&
+      kept.every((k) => loaded.some((l) => l.id === k.id && l.index === k.index));
+    if (nothingChanged) {
+      return null;
+    }
+
     const token = await AsyncStorage.getItem('token');
     if (!token) {
       return 'Your session expired. Please log in again.';
     }
-    const authHeader = { Authorization: `Bearer ${token}` };
-    let problem: string | null = null;
-
-    if (isUpdateMode && (deletedImagesIndex.length > 0 || updatedImagesIndex.length > 0)) {
-      try {
-        console.log({ deletedImagesIndex, updatedImagesIndex })
-        await axios.post(`${SERVER}/listitemimages/update_images/`,
-          {
-            list_item_id: listItem.id,
-            deletedImagesIndex: deletedImagesIndex,
-            updatedImagesIndex: updatedImagesIndex
-          }, {
-          headers: {
-            ...authHeader,
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-      }
-      catch (error) {
-        console.error('Error updating pictures', error);
-        problem = describeImageError(error);
-      }
-    }
 
     const formData = new FormData();
-    formData.append('list_item', listItemId.toString());
-
-    for (const image of images) {
-      if (image.fileName === 'unknown.jpg') {
-        continue
-      }
-
-      const base64Image = image.uri.split(',')[1];
-
+    formData.append('list_item_id', listItemId.toString());
+    formData.append('keep', JSON.stringify(kept));
+    for (const image of added) {
       formData.append('images', JSON.stringify({
-        uri: base64Image,
+        uri: image.uri.split(',')[1],
         fileName: image.fileName,
         mimeType: image.mimeType,
         index: image.index
       }));
     }
-    if (formData.has('images')) {
-      try {
-        await axios.post(`${SERVER}/listitemimages/upload_images/`, formData, {
-          headers: {
-            ...authHeader,
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-      } catch (error) {
-        console.error('Error uploading images', error);
-        problem = describeImageError(error);
-      }
-    }
-    return problem;
-  };
-  const handleShowLargeImage = (index: number) => {
-    const selectedImage = images.find((img) => img.index === index);
-    if (selectedImage) {
-      setLargeImage(selectedImage.uri);
-      setModalVisible(true);
-    } else {
-      console.error("Image not found for index:", index);
+    try {
+      await axios.post(`${SERVER}/listitemimages/sync_images/`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return null;
+    } catch (error) {
+      console.error('Error saving pictures', error);
+      return describeImageError(error);
     }
   };
 
-  const handleCloseLargeImage = () => {
-    setModalVisible(false);
-  };
+  const closeViewer = () => setViewerRow(null);
+  const viewerOpen = viewerRow !== null && viewerRow < items.length;
+  const viewerPicture = viewerOpen ? images.find((image) => image.index === viewerRow) : undefined;
+  const viewerRowText = viewerOpen ? items[viewerRow as number].replace('✔️', '').trim() : '';
+  const viewerTitle = viewerRowText || `Item ${(viewerRow ?? 0) + 1}`;
+  // Only people who can edit the list may add, replace or remove pictures.
+  const canEditPictures = permissionType === 'full_access';
 
   return (
     <View style={{ flex: 1 }}>
@@ -693,7 +689,7 @@ const ListItemDetails: React.FC = () => {
                     {filterImage.length > 0 ? (
                       <TouchableOpacity
                         key={filterImage[0].id}
-                        onPress={() => handleShowLargeImage(index)}
+                        onPress={() => setViewerRow(index)}
                         style={{ marginRight: 10 }}
                       >
                         <Image
@@ -703,37 +699,10 @@ const ListItemDetails: React.FC = () => {
                         />
                       </TouchableOpacity>
                     ) : (
-                      <TouchableOpacity onPress={() => handleAddImage(index)} style={{ marginRight: 10 }}>
+                      <TouchableOpacity onPress={() => choosePictureForRow(index)} style={{ marginRight: 10 }}>
                         <FontAwesome name="image" size={22} color={colors.primaryLight} />
                       </TouchableOpacity>
                     )}
-                    <Modal
-                      visible={modalVisible}
-                      onRequestClose={handleCloseLargeImage}
-                      animationType="fade"
-                      transparent={true}
-                    >
-                      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(38,34,59,0.85)' }}>
-                        <View style={styles.seeImage}>
-                          <TouchableOpacity onPress={handleCloseLargeImage}>
-                            {largeImage ? (
-                              <Image
-                                source={{ uri: largeImage }}
-                                style={{
-                                  width: width * 0.9,
-                                  height: height * 0.7,
-                                  borderRadius: 10,
-                                  resizeMode: 'contain',
-                                }}
-                                onError={() => console.error('Failed to load large image')}
-                              />
-                            ) : (
-                              <Text>Image not available</Text>
-                            )}
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    </Modal>
                     <TextInput
                       style={[
                         styles.textArea,
@@ -974,6 +943,87 @@ const ListItemDetails: React.FC = () => {
                 </View>
                 <Text style={styles.iconLabel}>Delete</Text>
               </TouchableOpacity>
+            )}
+            {viewerOpen && (
+              <View style={styles.viewerOverlay}>
+                <GlassCard style={styles.viewerCard} contentStyle={styles.viewerCardContent} tint={colors.glassBgStrong}>
+                  <TouchableOpacity style={styles.shareCloseButton} onPress={closeViewer} accessibilityLabel="Close picture viewer">
+                    <Ionicons name="close" size={18} color={colors.danger} />
+                  </TouchableOpacity>
+                  <Text style={styles.shareTitle} numberOfLines={1}>{viewerTitle}</Text>
+                  <View style={styles.shareTitleRule} />
+                  <Text style={styles.viewerPosition}>{(viewerRow as number) + 1} of {items.length}</Text>
+                  <View style={styles.viewerFrame} {...swipeResponder.panHandlers}>
+                    {viewerPicture ? (
+                      <Image
+                        source={{ uri: viewerPicture.uri }}
+                        style={styles.viewerImage}
+                        onError={() => console.error('Failed to load picture')}
+                      />
+                    ) : (
+                      <View style={styles.viewerEmpty}>
+                        <FontAwesome name="image" size={34} color="#B8B2DC" />
+                        <Text style={styles.viewerEmptyTitle}>{canEditPictures ? 'No picture yet' : 'No picture'}</Text>
+                        {canEditPictures && <Text style={styles.viewerEmptyText}>Add one to see it here</Text>}
+                      </View>
+                    )}
+                    {(viewerRow as number) > 0 && (
+                      <TouchableOpacity
+                        style={[styles.viewerArrow, { left: 8 }]}
+                        onPress={() => setViewerRow((viewerRow as number) - 1)}
+                        accessibilityLabel="Previous item"
+                      >
+                        <Ionicons name="chevron-back" size={18} color="#fff" />
+                      </TouchableOpacity>
+                    )}
+                    {(viewerRow as number) < items.length - 1 && (
+                      <TouchableOpacity
+                        style={[styles.viewerArrow, { right: 8 }]}
+                        onPress={() => setViewerRow((viewerRow as number) + 1)}
+                        accessibilityLabel="Next item"
+                      >
+                        <Ionicons name="chevron-forward" size={18} color="#fff" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  {items.length <= 9 && (
+                    <View style={styles.viewerDots}>
+                      {items.map((_, row) => (
+                        <View key={row} style={[styles.viewerDot, row === viewerRow && styles.viewerDotActive]} />
+                      ))}
+                    </View>
+                  )}
+                  {canEditPictures && (
+                    <View style={styles.viewerButtons}>
+                      <TouchableOpacity
+                        style={styles.viewerPrimaryTouch}
+                        onPress={() => choosePictureForRow(viewerRow as number)}
+                        accessibilityLabel={viewerPicture ? 'Replace image' : 'Add image'}
+                      >
+                        <LinearGradient
+                          colors={[colors.primary, colors.primaryLight]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.viewerPrimaryButton}
+                        >
+                          <Ionicons name={viewerPicture ? 'camera-outline' : 'add'} size={18} color="#fff" />
+                          <Text style={styles.viewerPrimaryText}>{viewerPicture ? 'Replace image' : 'Add image'}</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                      {viewerPicture && (
+                        <TouchableOpacity
+                          style={styles.viewerRemoveButton}
+                          onPress={() => setImages((prev) => prev.filter((image) => image.index !== viewerRow))}
+                          accessibilityLabel="Remove image"
+                        >
+                          <Ionicons name="trash-outline" size={17} color={colors.danger} />
+                          <Text style={styles.viewerRemoveText}>Remove</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
+                </GlassCard>
+              </View>
             )}
             {isDeleteConfirmVisible && (
               <View style={styles.shareOverlay}>
@@ -1477,17 +1527,136 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  seeImage: {
-    padding: 20,
+  viewerOverlay: {
+    position: 'fixed' as any,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
+    zIndex: 2,
+    backgroundColor: 'rgba(38,34,59,0.78)',
+  },
+  viewerCard: {
+    width: '90%',
+    maxWidth: 420,
+    borderRadius: radii.xl,
+  },
+  viewerCardContent: {
+    paddingHorizontal: 18,
+    paddingTop: 28,
+    paddingBottom: 20,
+  },
+  viewerPosition: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  viewerFrame: {
+    width: '100%',
+    aspectRatio: 4 / 3,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(106,91,214,0.10)',
+  },
+  viewerImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
+  },
+  viewerEmpty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(106,91,214,0.4)',
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+  },
+  viewerEmptyTitle: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 14,
+    color: colors.text,
+    marginTop: 6,
+  },
+  viewerEmptyText: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  viewerArrow: {
+    position: 'absolute',
+    top: '50%',
+    marginTop: -15,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(38,34,59,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewerDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 12,
+  },
+  viewerDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#C9C4E6',
+  },
+  viewerDotActive: {
+    width: 16,
+    backgroundColor: colors.primary,
+  },
+  viewerButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16,
+  },
+  viewerPrimaryTouch: {
+    flex: 1,
+  },
+  viewerPrimaryButton: {
+    height: 42,
+    borderRadius: radii.pill,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  viewerPrimaryText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: '#fff',
+  },
+  viewerRemoveButton: {
+    height: 42,
+    borderRadius: radii.pill,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1.5,
+    borderColor: 'rgba(226,83,107,0.5)',
+    backgroundColor: '#fff',
+  },
+  viewerRemoveText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.danger,
   },
 });
 
