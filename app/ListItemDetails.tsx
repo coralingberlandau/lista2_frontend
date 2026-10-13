@@ -18,6 +18,7 @@ import { colors, fonts, radii, shadows } from '@/constants/theme';
 import { API_URL } from '@/constants/config';
 import { describeError } from '@/utils/describeError';
 import { shrinkImage } from '@/utils/resizeImage';
+import { countItems } from '@/utils/countItems';
 
 type ListItemDetailsRouteProp = RouteProp<RootStackParamList, 'ListItemDetails'>;
 
@@ -66,7 +67,7 @@ const ListItemDetails: React.FC = () => {
   const canEdit = permissionType === 'full_access';
   const [isAIModalVisible, setIsAIModalVisible] = useState(false);
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
-  const [aiStatus, setAiStatus] = useState<'loading' | 'ideas' | 'empty' | 'error'>('loading');
+  const [aiStatus, setAiStatus] = useState<'loading' | 'ideas' | 'empty' | 'nothing' | 'error'>('loading');
   const SERVER = API_URL;
   viewerRowRef.current = viewerRow;
   itemCountRef.current = items.length;
@@ -130,6 +131,12 @@ const ListItemDetails: React.FC = () => {
 
   const fetchRecommendations = async () => {
     setIsAIModalVisible(true);
+    // The ideas are based on the items' text. With no text yet there is nothing to go on, so say
+    // so in a friendly way instead of asking the AI (which would only report an error).
+    if (!items.some((row) => row.replace('✔️', '').trim() !== '')) {
+      setAiStatus('nothing');
+      return;
+    }
     if (!listItem || !listItem.id) {
       console.error('Item ID is not available');
       setAiStatus('error');
@@ -676,6 +683,9 @@ const ListItemDetails: React.FC = () => {
   const viewerPicture = viewerOpen ? images.find((image) => image.index === viewerRow) : undefined;
   const viewerRowText = viewerOpen ? items[viewerRow as number].replace('✔️', '').trim() : '';
   const viewerTitle = viewerRowText || `Item ${(viewerRow ?? 0) + 1}`;
+  // A list with no text and no pictures has nothing to show a view-only member.
+  const listIsEmpty = countItems(items.join('|'), images.map((image) => image.index)).total === 0;
+
   // While the permission is being confirmed, show the loading dots (not the editing controls).
   if (!permissionReady) {
     return (
@@ -708,6 +718,9 @@ const ListItemDetails: React.FC = () => {
           </View>
 
           <GlassCard style={styles.itemsCard} contentStyle={styles.itemsCardContent}>
+            {!canEdit && listIsEmpty ? (
+              <Text style={styles.emptyViewNote}>No items yet</Text>
+            ) : (
             <FlatList
               data={items}
               scrollEnabled={false}
@@ -779,6 +792,7 @@ const ListItemDetails: React.FC = () => {
                 )
               }}
               keyExtractor={(_, index) => index.toString()} />
+            )}
           </GlassCard>
 
           <View style={styles.iconRowContainer}>
@@ -826,6 +840,15 @@ const ListItemDetails: React.FC = () => {
                       </View>
                       <Text style={styles.aiStateTitle}>No ideas this time</Text>
                       <Text style={styles.aiStateText}>Add a few more items to your list, then ask again.</Text>
+                    </View>
+                  )}
+                  {aiStatus === 'nothing' && (
+                    <View style={styles.aiStateBox}>
+                      <View style={[styles.aiStateIcon, styles.aiStateIconSoft]}>
+                        <Text style={styles.aiStateEmoji}>💡</Text>
+                      </View>
+                      <Text style={styles.aiStateTitle}>Nothing to go on yet</Text>
+                      <Text style={styles.aiStateText}>Add a few items to your list, then ask for ideas.</Text>
                     </View>
                   )}
                   {aiStatus === 'error' && (
@@ -1581,6 +1604,13 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  emptyViewNote: {
+    fontFamily: fonts.body,
+    fontSize: 15,
+    color: colors.textMuted,
+    textAlign: 'center',
+    paddingVertical: 18,
   },
   permissionLoading: {
     flex: 1,
