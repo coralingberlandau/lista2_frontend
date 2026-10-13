@@ -26,6 +26,8 @@ export interface ListItem {
   items: string;
   date_created: string;
   is_active: boolean;
+  // Row positions that have a picture (sent by the server; missing on older servers).
+  picture_rows?: number[];
 }
 
 export interface Image {
@@ -55,6 +57,8 @@ export interface ImageData {
   mimeType: string;
   index: number;
   largeImage?: string;  
+  // True for a picture chosen in this session that has not been saved yet.
+  isNew?: boolean;
 }
 
 export interface BackgroundImage {

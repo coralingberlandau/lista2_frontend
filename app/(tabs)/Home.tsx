@@ -15,6 +15,7 @@ import GlassCard from '@/components/GlassCard';
 import { colors, fonts, radii, shadows, progressGradient } from '@/constants/theme';
 import { API_URL } from '@/constants/config';
 import { describeError } from '@/utils/describeError';
+import { countItems } from '@/utils/countItems';
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'ListItemDetails'>;
 
@@ -101,10 +102,6 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
     }
   };
 
-  const doneCount = (item: ListItem) =>
-    item.items.split('|').filter((line) => line.includes('✔️')).length;
-  const totalCount = (item: ListItem) => item.items.split('|').length;
-
   return (
     <View style={styles.root}>
       <AppBackground />
@@ -140,8 +137,7 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
               scrollEnabled={false}
               contentContainerStyle={styles.listContent}
               renderItem={({ item }) => {
-                const done = doneCount(item);
-                const total = totalCount(item);
+                const { done, total } = countItems(item.items, item.picture_rows);
                 const progress = total > 0 ? done / total : 0;
                 const gradient = progressGradient(done, total);
                 return (
@@ -149,23 +145,29 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
                     <GlassCard style={styles.listCard} contentStyle={styles.listCardContent}>
                       <View style={styles.listCardHeader}>
                         <Text style={styles.boldText}>{item.title}</Text>
-                        <LinearGradient
-                          colors={gradient}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                          style={styles.badge}
-                        >
-                          <Text style={styles.badgeText}>{done}/{total}</Text>
-                        </LinearGradient>
+                        {total > 0 && (
+                          <LinearGradient
+                            colors={gradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.badge}
+                          >
+                            <Text style={styles.badgeText}>{done}/{total}</Text>
+                          </LinearGradient>
+                        )}
                       </View>
-                      <View style={styles.progressTrack}>
-                        <LinearGradient
-                          colors={gradient}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={[styles.progressFill, { width: `${Math.max(progress * 100, total > 0 ? 4 : 0)}%` }]}
-                        />
-                      </View>
+                      {total > 0 ? (
+                        <View style={styles.progressTrack}>
+                          <LinearGradient
+                            colors={gradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={[styles.progressFill, { width: `${Math.max(progress * 100, 4)}%` }]}
+                          />
+                        </View>
+                      ) : (
+                        <Text style={styles.emptyListNote}>No items yet</Text>
+                      )}
                     </GlassCard>
                   </TouchableOpacity>
                 )
@@ -251,6 +253,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 12,
     color: '#fff',
+  },
+  emptyListNote: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 12,
   },
   progressTrack: {
     width: '100%',
