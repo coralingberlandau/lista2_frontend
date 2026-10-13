@@ -59,7 +59,11 @@ const ListItemDetails: React.FC = () => {
   const [recommendations, setRecommendations] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [permissionType, setPermissionType] = useState<string>('full_access');
+  // Editing an existing list starts view-only; the real permission is confirmed with the server
+  // before any editing control is shown. Creating a new list always has full access.
+  const [permissionType, setPermissionType] = useState<string>(listItem ? 'read_only' : 'full_access');
+  const [permissionReady, setPermissionReady] = useState<boolean>(!listItem);
+  const canEdit = permissionType === 'full_access';
   const [isAIModalVisible, setIsAIModalVisible] = useState(false);
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
   const [aiStatus, setAiStatus] = useState<'loading' | 'ideas' | 'empty' | 'error'>('loading');
@@ -79,11 +83,18 @@ const ListItemDetails: React.FC = () => {
   );
 
   const fetchPermissionType = async () => {
+    if (!listItem?.id) {
+      // A list that is being created: the person creating it can edit everything.
+      setPermissionType('full_access');
+      setPermissionReady(true);
+      return;
+    }
     const storedUserId = await AsyncStorage.getItem('userId');
     const token = await AsyncStorage.getItem('token');
-    if (!storedUserId || !listItem?.id) {
-      setPermissionType('full_access')
-      setError('Missing user_id or list_item_id');
+    if (!storedUserId) {
+      setPermissionType('read_only');
+      setPermissionReady(true);
+      setError('Missing user_id');
       return;
     }
     try {
@@ -104,8 +115,16 @@ const ListItemDetails: React.FC = () => {
     } catch (err) {
       console.error('Error fetching permission type:', err);
       setError('Failed to fetch permission type');
+      // Could not confirm what this person may do, so keep the list view-only.
+      setPermissionType('read_only');
+      Toast.show({
+        type: 'error',
+        text1: "Couldn't check your access",
+        text2: `${describeError(err)} You can view this list for now.`,
+      });
     } finally {
       setLoading(false);
+      setPermissionReady(true);
     }
   };
 
@@ -211,10 +230,12 @@ const ListItemDetails: React.FC = () => {
   };
 
   const AddItemToList = () => {
+    if (!canEdit) return;
     setItems(prev => [...prev, '']);
   };
 
   const handleItemChange = (text: string, index: number) => {
+    if (!canEdit) return;
     const newItems = [...items];
     const wasChecked = newItems[index].startsWith('✔️ ');
     newItems[index] = wasChecked ? `✔️ ${text}` : text;
@@ -222,6 +243,7 @@ const ListItemDetails: React.FC = () => {
   };
 
   const handleToggleItem = (index: number) => {
+    if (!canEdit) return;
     const newItems = [...items];
     const itemText = newItems[index];
     if (itemText.startsWith('✔️ ')) {
@@ -235,6 +257,7 @@ const ListItemDetails: React.FC = () => {
   const allItemsChecked = items.length > 0 && items.every((item) => item.startsWith('✔️ '));
 
   const handleToggleAllItems = () => {
+    if (!canEdit) return;
     setItems((prev) =>
       prev.map((item) => {
         const isChecked = item.startsWith('✔️ ');
@@ -247,6 +270,7 @@ const ListItemDetails: React.FC = () => {
   };
 
   const handleRemoveItem = (index: number) => {
+    if (!canEdit) return;
     setItems((prev) => prev.filter((_, row) => row !== index));
     // The row's own picture goes with it, and the pictures of the rows below move up with
     // their rows, so every picture stays with the item it belongs to.
@@ -550,6 +574,7 @@ const ListItemDetails: React.FC = () => {
   // Lets the user pick a picture for a row, shrinks it, and puts it on that row (replacing the
   // row's current picture, if any). Nothing is saved until Update List is pressed.
   const choosePictureForRow = async (index: number) => {
+    if (!canEdit) return;
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -651,8 +676,17 @@ const ListItemDetails: React.FC = () => {
   const viewerPicture = viewerOpen ? images.find((image) => image.index === viewerRow) : undefined;
   const viewerRowText = viewerOpen ? items[viewerRow as number].replace('✔️', '').trim() : '';
   const viewerTitle = viewerRowText || `Item ${(viewerRow ?? 0) + 1}`;
-  // Only people who can edit the list may add, replace or remove pictures.
-  const canEditPictures = permissionType === 'full_access';
+  // While the permission is being confirmed, show the loading dots (not the editing controls).
+  if (!permissionReady) {
+    return (
+      <View style={{ flex: 1 }}>
+        <AppBackground />
+        <View style={styles.permissionLoading}>
+          <AuroraDotsLoader />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -660,12 +694,16 @@ const ListItemDetails: React.FC = () => {
       <View style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.titleBlock}>
-            <TextInput
-              style={[styles.titleInput, { outline: 'none' }]}
-              value={title}
-              onChangeText={setTitle}
-              placeholderTextColor={colors.placeholder}
-              placeholder="Edit Title" />
+            {canEdit ? (
+              <TextInput
+                style={[styles.titleInput, { outline: 'none' }]}
+                value={title}
+                onChangeText={setTitle}
+                placeholderTextColor={colors.placeholder}
+                placeholder="Edit Title" />
+            ) : (
+              <Text style={styles.titleInput}>{title}</Text>
+            )}
             <View style={styles.titleRule} />
           </View>
 
@@ -678,7 +716,7 @@ const ListItemDetails: React.FC = () => {
                 const isChecked = item.includes('✔️');
                 return (
                   <View style={styles.item}>
-                    <TouchableOpacity onPress={() => handleToggleItem(index)} style={{ marginRight: 10 }}>
+                    <TouchableOpacity onPress={() => handleToggleItem(index)} disabled={!canEdit} style={{ marginRight: 10 }}>
                       <FontAwesome
                         name={isChecked ? "check-square-o" : "square-o"}
                         size={22}
@@ -698,28 +736,45 @@ const ListItemDetails: React.FC = () => {
                           onError={() => console.error("Failed to load image")}
                         />
                       </TouchableOpacity>
-                    ) : (
+                    ) : canEdit ? (
                       <TouchableOpacity onPress={() => choosePictureForRow(index)} style={{ marginRight: 10 }}>
                         <FontAwesome name="image" size={22} color={colors.primaryLight} />
                       </TouchableOpacity>
+                    ) : (
+                      <View style={{ marginRight: 10, opacity: 0.35 }}>
+                        <FontAwesome name="image" size={22} color={colors.primaryLight} />
+                      </View>
                     )}
-                    <TextInput
-                      style={[
-                        styles.textArea,
-                        {
-                          outline: 'none',
-                          textDecorationLine: isChecked ? 'line-through' : 'none',
-                        },
-                      ]}
-                      placeholder="Write here..."
-                      placeholderTextColor={colors.placeholder}
-                      multiline={false}
-                      value={isChecked ? item.replace('✔️ ', '') : item}
-                      onChangeText={(text) => handleItemChange(text, index)}
-                    />
-                    <TouchableOpacity onPress={() => handleRemoveItem(index)} style={{ marginLeft: 10 }}>
-                      <Feather name="trash-2" size={20} color={colors.danger} />
-                    </TouchableOpacity>
+                    {canEdit ? (
+                      <TextInput
+                        style={[
+                          styles.textArea,
+                          {
+                            outline: 'none',
+                            textDecorationLine: isChecked ? 'line-through' : 'none',
+                          },
+                        ]}
+                        placeholder="Write here..."
+                        placeholderTextColor={colors.placeholder}
+                        multiline={false}
+                        value={isChecked ? item.replace('✔️ ', '') : item}
+                        onChangeText={(text) => handleItemChange(text, index)}
+                      />
+                    ) : (
+                      <Text
+                        style={[
+                          styles.textArea,
+                          { textDecorationLine: isChecked ? 'line-through' : 'none' },
+                        ]}
+                      >
+                        {isChecked ? item.replace('✔️ ', '') : item}
+                      </Text>
+                    )}
+                    {canEdit && (
+                      <TouchableOpacity onPress={() => handleRemoveItem(index)} style={{ marginLeft: 10 }}>
+                        <Feather name="trash-2" size={20} color={colors.danger} />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )
               }}
@@ -727,7 +782,7 @@ const ListItemDetails: React.FC = () => {
           </GlassCard>
 
           <View style={styles.iconRowContainer}>
-            {isUpdateMode && (
+            {isUpdateMode && canEdit && (
               <TouchableOpacity style={styles.iconContainer} onPress={fetchRecommendations}>
                 <View style={styles.iconCircle}>
                   <Text style={styles.iconEmoji}>💡</Text>
@@ -928,7 +983,7 @@ const ListItemDetails: React.FC = () => {
                 </GlassCard>
               </View>
             )}
-            {isUpdateMode && (
+            {isUpdateMode && canEdit && (
               <TouchableOpacity style={styles.iconContainer} onPress={handleToggleAllItems}>
                 <View style={styles.iconCircle}>
                   <Ionicons name="checkmark-circle-outline" size={19} color={colors.primary} />
@@ -963,8 +1018,8 @@ const ListItemDetails: React.FC = () => {
                     ) : (
                       <View style={styles.viewerEmpty}>
                         <FontAwesome name="image" size={34} color="#B8B2DC" />
-                        <Text style={styles.viewerEmptyTitle}>{canEditPictures ? 'No picture yet' : 'No picture'}</Text>
-                        {canEditPictures && <Text style={styles.viewerEmptyText}>Add one to see it here</Text>}
+                        <Text style={styles.viewerEmptyTitle}>{canEdit ? 'No picture yet' : 'No picture'}</Text>
+                        {canEdit && <Text style={styles.viewerEmptyText}>Add one to see it here</Text>}
                       </View>
                     )}
                     {(viewerRow as number) > 0 && (
@@ -993,7 +1048,7 @@ const ListItemDetails: React.FC = () => {
                       ))}
                     </View>
                   )}
-                  {canEditPictures && (
+                  {canEdit && (
                     <View style={styles.viewerButtons}>
                       <TouchableOpacity
                         style={styles.viewerPrimaryTouch}
@@ -1526,6 +1581,11 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  permissionLoading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   viewerOverlay: {
     position: 'fixed' as any,
