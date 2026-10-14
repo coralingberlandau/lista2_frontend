@@ -58,6 +58,8 @@ const ListItemDetails: React.FC = () => {
     })
   ).current;
   const [recommendations, setRecommendations] = useState<string[]>([]);
+  // Positions (in `recommendations`) of the ideas the user ticked to add to the list.
+  const [selectedIdeas, setSelectedIdeas] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Editing an existing list starts view-only; the real permission is confirmed with the server
@@ -129,7 +131,9 @@ const ListItemDetails: React.FC = () => {
     }
   };
 
-  const fetchRecommendations = async () => {
+  // `askForMore` is true when the user asks for a fresh set of ideas: the ideas already shown
+  // are sent along so the AI does not repeat them.
+  const fetchRecommendations = async (askForMore: boolean = false) => {
     setIsAIModalVisible(true);
     // The ideas are based on the items' text. With no text yet there is nothing to go on, so say
     // so in a friendly way instead of asking the AI (which would only report an error).
@@ -145,8 +149,9 @@ const ListItemDetails: React.FC = () => {
 
     setAiStatus('loading');
     setLoading(true);
+    setSelectedIdeas([]);
     try {
-      const suggestions = await getRecommendations(items);
+      const suggestions = await getRecommendations(items, askForMore ? recommendations : []);
       setRecommendations(suggestions);
       setAiStatus(suggestions.length > 0 ? 'ideas' : 'empty');
     } catch (error) {
@@ -158,9 +163,10 @@ const ListItemDetails: React.FC = () => {
     }
   };
 
-  const getRecommendations = async (currentItems: string[]): Promise<string[]> => {
+  const getRecommendations = async (currentItems: string[], alreadySuggested: string[] = []): Promise<string[]> => {
     const response = await axios.post('/.netlify/functions/recommendations', {
       items: currentItems.filter((item) => item.trim() !== ''),
+      exclude: alreadySuggested,
     });
     const recommendations = response.data?.recommendations;
     if (!Array.isArray(recommendations)) {
@@ -247,6 +253,44 @@ const ListItemDetails: React.FC = () => {
     const wasChecked = newItems[index].startsWith('✔️ ');
     newItems[index] = wasChecked ? `✔️ ${text}` : text;
     setItems(newItems);
+  };
+
+  const handleToggleIdea = (position: number) => {
+    setSelectedIdeas((prev) =>
+      prev.includes(position) ? prev.filter((i) => i !== position) : [...prev, position]
+    );
+  };
+
+  // Adds the ticked ideas to the bottom of the list, one row each. If the last row is empty and
+  // has no picture it is the row waiting for the next item, so the first idea fills it and the
+  // rest go below. Nothing is saved until Update List is pressed.
+  const handleAddSelectedIdeas = () => {
+    if (!canEdit) return;
+    const chosen = recommendations
+      .filter((_, position) => selectedIdeas.includes(position))
+      .map((idea) => idea.trim())
+      .filter((idea) => idea !== '');
+    if (chosen.length === 0) return;
+
+    const next = [...items];
+    const last = next.length - 1;
+    const lastRowIsFree =
+      last >= 0 &&
+      next[last].replace('✔️', '').trim() === '' &&
+      !images.some((image) => image.index === last);
+    let rest = chosen;
+    if (lastRowIsFree) {
+      next[last] = chosen[0];
+      rest = chosen.slice(1);
+    }
+    setItems([...next, ...rest]);
+    setIsAIModalVisible(false);
+    setSelectedIdeas([]);
+    Toast.show({
+      type: 'success',
+      text1: chosen.length === 1 ? 'Added 1 item' : `Added ${chosen.length} items`,
+      text2: 'Press Update List to save them.',
+    });
   };
 
   const handleToggleItem = (index: number) => {
@@ -797,7 +841,7 @@ const ListItemDetails: React.FC = () => {
 
           <View style={styles.iconRowContainer}>
             {isUpdateMode && canEdit && (
-              <TouchableOpacity style={styles.iconContainer} onPress={fetchRecommendations}>
+              <TouchableOpacity style={styles.iconContainer} onPress={() => fetchRecommendations()}>
                 <View style={styles.iconCircle}>
                   <Text style={styles.iconEmoji}>💡</Text>
                 </View>
@@ -825,12 +869,41 @@ const ListItemDetails: React.FC = () => {
                         <Text style={styles.shareLabelInline}>AI Recommendations</Text>
                       </View>
                       <ScrollView style={styles.aiIdeasScroll}>
-                        {recommendations.map((idea, index) => (
-                          <View key={index} style={styles.aiIdeaRow}>
-                            <Text style={styles.aiIdeaText}>{idea}</Text>
-                          </View>
-                        ))}
+                        {recommendations.map((idea, index) => {
+                          const isSelected = selectedIdeas.includes(index);
+                          return (
+                            <TouchableOpacity
+                              key={index}
+                              activeOpacity={0.7}
+                              onPress={() => handleToggleIdea(index)}
+                              style={[styles.aiIdeaRow, isSelected && styles.aiIdeaRowSelected]}
+                            >
+                              <FontAwesome
+                                name={isSelected ? 'check-square-o' : 'square-o'}
+                                size={22}
+                                color={isSelected ? colors.primary : colors.placeholder}
+                              />
+                              <Text style={styles.aiIdeaText}>{idea}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
                       </ScrollView>
+                      <View style={styles.aiIdeasFooter}>
+                        <TouchableOpacity style={styles.aiNewIdeas} onPress={() => fetchRecommendations(true)}>
+                          <Ionicons name="refresh" size={14} color={colors.primary} />
+                          <Text style={styles.aiTryAgainText}>New ideas</Text>
+                        </TouchableOpacity>
+                        <PrimaryButton
+                          style={styles.aiAddButton}
+                          title={
+                            selectedIdeas.length === 0
+                              ? 'Select ideas to add'
+                              : `Add ${selectedIdeas.length} to list`
+                          }
+                          disabled={selectedIdeas.length === 0}
+                          onPress={handleAddSelectedIdeas}
+                        />
+                      </View>
                     </View>
                   )}
                   {aiStatus === 'empty' && (
@@ -858,7 +931,7 @@ const ListItemDetails: React.FC = () => {
                       </View>
                       <Text style={styles.aiStateTitle}>Couldn't load ideas</Text>
                       <Text style={styles.aiStateText}>Something went wrong. Please try again in a little while.</Text>
-                      <TouchableOpacity style={styles.aiTryAgain} onPress={fetchRecommendations}>
+                      <TouchableOpacity style={styles.aiTryAgain} onPress={() => fetchRecommendations()}>
                         <Ionicons name="refresh" size={14} color={colors.primary} />
                         <Text style={styles.aiTryAgainText}>Try again</Text>
                       </TouchableOpacity>
@@ -1444,14 +1517,42 @@ const styles = StyleSheet.create({
     maxHeight: 260,
   },
   aiIdeaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     paddingVertical: 11,
+    paddingHorizontal: 8,
     borderTopWidth: 1,
     borderTopColor: colors.divider,
   },
+  aiIdeaRowSelected: {
+    backgroundColor: 'rgba(106,91,214,0.10)',
+  },
   aiIdeaText: {
+    flex: 1,
     fontFamily: fonts.body,
     fontSize: 14,
     color: colors.text,
+  },
+  aiIdeasFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 14,
+  },
+  aiNewIdeas: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: radii.pill,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(106,91,214,0.07)',
+  },
+  aiAddButton: {
+    flex: 1,
   },
   shareLabel: {
     fontFamily: fonts.bodyBold,
