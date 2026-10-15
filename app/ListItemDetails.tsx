@@ -20,6 +20,9 @@ import { describeError } from '@/utils/describeError';
 import { shrinkImage } from '@/utils/resizeImage';
 import { countItems } from '@/utils/countItems';
 
+// Remembers on this device that the "New ideas" explanation has been shown once.
+const NEW_IDEAS_NOTICE_KEY = 'aiNewIdeasNoticeSeen';
+
 type ListItemDetailsRouteProp = RouteProp<RootStackParamList, 'ListItemDetails'>;
 
 const ListItemDetails: React.FC = () => {
@@ -60,8 +63,10 @@ const ListItemDetails: React.FC = () => {
   const [recommendations, setRecommendations] = useState<string[]>([]);
   // Positions (in `recommendations`) of the ideas the user ticked to add to the list.
   const [selectedIdeas, setSelectedIdeas] = useState<number[]>([]);
-  // True while the box asks the user to confirm before replacing ideas they have ticked.
-  const [confirmNewIdeas, setConfirmNewIdeas] = useState(false);
+  // Set while the box asks the user to confirm before "New ideas" replaces the set: 'ticked' when
+  // some ideas are ticked (they would be added to the list first), 'none' when nothing is ticked
+  // (a one-time explanation that the ideas shown will be gone).
+  const [confirmNewIdeas, setConfirmNewIdeas] = useState<'ticked' | 'none' | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Editing an existing list starts view-only; the real permission is confirmed with the server
@@ -138,7 +143,7 @@ const ListItemDetails: React.FC = () => {
   // on (the caller passes the updated list when it has just added ideas to it).
   const fetchRecommendations = async (askForMore: boolean = false, currentItems: string[] = items) => {
     setIsAIModalVisible(true);
-    setConfirmNewIdeas(false);
+    setConfirmNewIdeas(null);
     // The ideas are based on the items' text. With no text yet there is nothing to go on, so say
     // so in a friendly way instead of asking the AI (which would only report an error).
     if (!currentItems.some((row) => row.replace('✔️', '').trim() !== '')) {
@@ -306,16 +311,34 @@ const ListItemDetails: React.FC = () => {
     }
   };
 
-  // "New ideas" replaces the set. If some ideas are ticked, ask first, because they would be lost.
-  const handleNewIdeas = () => {
+  // "New ideas" replaces the set. If some ideas are ticked, always ask first, because they would be
+  // lost. With nothing ticked, explain once (the first time on this device) that the ideas shown
+  // will be replaced, then never again, so asking for fresh ideas stays quick.
+  const handleNewIdeas = async () => {
     if (selectedIdeas.length > 0) {
-      setConfirmNewIdeas(true);
-    } else {
-      fetchRecommendations(true);
+      setConfirmNewIdeas('ticked');
+      return;
     }
+    let alreadyExplained = true;
+    try {
+      alreadyExplained = (await AsyncStorage.getItem(NEW_IDEAS_NOTICE_KEY)) === 'seen';
+    } catch {
+      // If the device storage cannot be read, skip the explanation rather than show it every time.
+    }
+    if (alreadyExplained) {
+      fetchRecommendations(true);
+      return;
+    }
+    try {
+      await AsyncStorage.setItem(NEW_IDEAS_NOTICE_KEY, 'seen');
+    } catch {
+      // Not remembering is harmless: the explanation may simply show once more.
+    }
+    setConfirmNewIdeas('none');
   };
 
-  // OK on that question: the ticked ideas go into the list, the box stays open and shows a fresh set.
+  // OK on either question. With ticked ideas they go into the list first (the box stays open);
+  // either way a fresh set is shown.
   const handleConfirmNewIdeas = () => {
     const updated = addSelectedIdeasToList();
     fetchRecommendations(true, updated ?? items);
@@ -903,7 +926,7 @@ const ListItemDetails: React.FC = () => {
                             <TouchableOpacity
                               key={index}
                               activeOpacity={0.7}
-                              disabled={confirmNewIdeas}
+                              disabled={confirmNewIdeas !== null}
                               onPress={() => handleToggleIdea(index)}
                               style={[styles.aiIdeaRow, isSelected && styles.aiIdeaRowSelected]}
                             >
@@ -920,12 +943,14 @@ const ListItemDetails: React.FC = () => {
                       {confirmNewIdeas ? (
                         <View style={styles.aiConfirmBox}>
                           <Text style={styles.aiConfirmText}>
-                            {selectedIdeas.length === 1
-                              ? "You've ticked 1 idea. It will be added to your list, and then you'll get a fresh set. Continue?"
-                              : `You've ticked ${selectedIdeas.length} ideas. They will be added to your list, and then you'll get a fresh set. Continue?`}
+                            {confirmNewIdeas === 'none'
+                              ? "You haven't ticked any ideas. These ideas will be replaced and you won't see them again. Continue?"
+                              : selectedIdeas.length === 1
+                                ? "You've ticked 1 idea. It will be added to your list, and then you'll get a fresh set. Continue?"
+                                : `You've ticked ${selectedIdeas.length} ideas. They will be added to your list, and then you'll get a fresh set. Continue?`}
                           </Text>
                           <View style={styles.aiConfirmButtons}>
-                            <TouchableOpacity style={[styles.aiConfirmButton, styles.aiConfirmCancel]} onPress={() => setConfirmNewIdeas(false)}>
+                            <TouchableOpacity style={[styles.aiConfirmButton, styles.aiConfirmCancel]} onPress={() => setConfirmNewIdeas(null)}>
                               <Text style={styles.aiConfirmCancelText}>Cancel</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.aiConfirmOkTouch} onPress={handleConfirmNewIdeas}>
