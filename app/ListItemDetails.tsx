@@ -72,8 +72,9 @@ const ListItemDetails: React.FC = () => {
   const [selectedIdeas, setSelectedIdeas] = useState<number[]>([]);
   // Set while the box asks the user to confirm before "New ideas" replaces the set: 'ticked' when
   // some ideas are ticked (they would be added to the list first), 'none' when nothing is ticked
-  // (a one-time explanation that the ideas shown will be gone).
-  const [confirmNewIdeas, setConfirmNewIdeas] = useState<'ticked' | 'none' | null>(null);
+  // (a one-time explanation that the ideas shown will be gone). 'close' is set when the X is
+  // pressed while ideas are ticked, because closing would discard them.
+  const [confirmNewIdeas, setConfirmNewIdeas] = useState<'ticked' | 'none' | 'close' | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Editing an existing list starts view-only; the real permission is confirmed with the server
@@ -381,6 +382,22 @@ const ListItemDetails: React.FC = () => {
       // Not remembering is harmless: the explanation may simply show once more.
     }
     setConfirmNewIdeas('none');
+  };
+
+  // The X closes the box. If ideas are ticked, ask first, because closing discards them.
+  const handleCloseIdeasBox = () => {
+    if (selectedIdeas.length > 0) {
+      setConfirmNewIdeas('close');
+    } else {
+      setIsAIModalVisible(false);
+    }
+  };
+
+  // "Discard" on that question: close the box without adding anything to the list.
+  const handleDiscardAndClose = () => {
+    setConfirmNewIdeas(null);
+    setSelectedIdeas([]);
+    setIsAIModalVisible(false);
   };
 
   // OK on either question. With ticked ideas they go into the list first (the box stays open);
@@ -982,7 +999,7 @@ const ListItemDetails: React.FC = () => {
             {isAIModalVisible && (
               <View style={styles.shareOverlay}>
                 <GlassCard style={styles.shareCard} contentStyle={styles.shareCardContent} tint={colors.glassBgStrong}>
-                  <TouchableOpacity style={styles.shareCloseButton} onPress={() => setIsAIModalVisible(false)}>
+                  <TouchableOpacity style={styles.shareCloseButton} onPress={handleCloseIdeasBox}>
                     <Ionicons name="close" size={18} color={colors.danger} />
                   </TouchableOpacity>
                   <Text style={styles.shareTitle}>Ideas for your list</Text>
@@ -1020,7 +1037,33 @@ const ListItemDetails: React.FC = () => {
                           );
                         })}
                       </ScrollView>
-                      {confirmNewIdeas ? (
+                      {confirmNewIdeas === 'close' ? (
+                        <View style={styles.aiConfirmBox}>
+                          <Text style={styles.aiConfirmTitle}>
+                            {selectedIdeas.length === 1 ? 'Discard 1 ticked idea?' : `Discard ${selectedIdeas.length} ticked ideas?`}
+                          </Text>
+                          <Text style={styles.aiConfirmText}>
+                            {selectedIdeas.length === 1
+                              ? "It hasn't been added to your list."
+                              : "They haven't been added to your list."}
+                          </Text>
+                          <View style={styles.aiConfirmButtons}>
+                            <TouchableOpacity style={[styles.aiConfirmButton, styles.aiConfirmDiscard]} onPress={handleDiscardAndClose}>
+                              <Text style={styles.aiConfirmDiscardText}>Discard</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.aiConfirmOkTouch} onPress={() => setConfirmNewIdeas(null)}>
+                              <LinearGradient
+                                colors={[colors.primary, colors.primaryLight]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.aiConfirmButton}
+                              >
+                                <Text style={styles.aiConfirmOkText}>Keep editing</Text>
+                              </LinearGradient>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ) : confirmNewIdeas ? (
                         <View style={styles.aiConfirmBox}>
                           <Text style={styles.aiConfirmText}>
                             {confirmNewIdeas === 'none'
@@ -1776,6 +1819,22 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 13,
     color: colors.primary,
+  },
+  aiConfirmTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: '#633806',
+    marginBottom: 2,
+  },
+  aiConfirmDiscard: {
+    borderWidth: 1.5,
+    borderColor: 'rgba(226,83,107,0.5)',
+    backgroundColor: '#fff',
+  },
+  aiConfirmDiscardText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.danger,
   },
   aiConfirmOkText: {
     fontFamily: fonts.bodyBold,
