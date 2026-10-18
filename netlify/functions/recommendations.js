@@ -19,8 +19,9 @@ exports.handler = async (event) => {
   }
 
   let items;
+  let exclude = [];
   try {
-    ({ items } = JSON.parse(event.body || '{}'));
+    ({ items, exclude = [] } = JSON.parse(event.body || '{}'));
   } catch {
     return { statusCode: 400, body: JSON.stringify({ error: 'Invalid request body' }) };
   }
@@ -29,8 +30,17 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'No items provided' }) };
   }
 
+  // Ideas the user has already seen (when asking for new ones). Optional, so older versions of the
+  // app that do not send it keep working. Capped so a request cannot grow the prompt without limit.
+  const alreadySeen = Array.isArray(exclude)
+    ? exclude.filter((idea) => typeof idea === 'string' && idea.trim() !== '').slice(0, 30)
+    : [];
+
   const prompt = `A user has a list with these items: ${items.join(', ')}. ` +
     'Suggest 5 short, related items they might also want to add. ' +
+    (alreadySeen.length > 0
+      ? `Do not suggest any of these, which were already suggested: ${alreadySeen.join(', ')}. `
+      : '') +
     'Reply with ONLY a comma-separated list of item names, no numbering, no extra text.';
 
   try {

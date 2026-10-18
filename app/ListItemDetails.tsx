@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, FlatList, PanResponder } from 'react-native';
 import { RouteProp, useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { ImageData, ListItem, RootStackParamList, User } from './type';
@@ -20,6 +20,9 @@ import { describeError } from '@/utils/describeError';
 import { shrinkImage } from '@/utils/resizeImage';
 import { countItems } from '@/utils/countItems';
 
+// Remembers on this device that the "New ideas" explanation has been shown once.
+const NEW_IDEAS_NOTICE_KEY = 'aiNewIdeasNoticeSeen';
+
 type ListItemDetailsRouteProp = RouteProp<RootStackParamList, 'ListItemDetails'>;
 
 const ListItemDetails: React.FC = () => {
@@ -40,6 +43,13 @@ const ListItemDetails: React.FC = () => {
   const [images, setImages] = useState<ImageData[]>([]);
   // The pictures as the server has them, to know whether anything changed when saving.
   const loadedPictures = useRef<{ id: number; index: number }[]>([]);
+  // Row whose text is being edited. While it is set, the slim "Insert row" bars show next to it.
+  const [activeRow, setActiveRow] = useState<number | null>(null);
+  const hideBarsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pressingInsertBar = useRef(false);
+  const rowInputs = useRef<Record<number, TextInput | null>>({});
+  // Row that should receive the cursor once the list has been redrawn after an insert.
+  const rowToFocus = useRef<number | null>(null);
   // Row currently shown in the picture viewer (null = viewer closed).
   const [viewerRow, setViewerRow] = useState<number | null>(null);
   const viewerRowRef = useRef<number | null>(null);
@@ -58,6 +68,12 @@ const ListItemDetails: React.FC = () => {
     })
   ).current;
   const [recommendations, setRecommendations] = useState<string[]>([]);
+  // Positions (in `recommendations`) of the ideas the user ticked to add to the list.
+  const [selectedIdeas, setSelectedIdeas] = useState<number[]>([]);
+  // Set while the box asks the user to confirm before "New ideas" replaces the set: 'ticked' when
+  // some ideas are ticked (they would be added to the list first), 'none' when nothing is ticked
+  // (a one-time explanation that the ideas shown will be gone).
+  const [confirmNewIdeas, setConfirmNewIdeas] = useState<'ticked' | 'none' | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Editing an existing list starts view-only; the real permission is confirmed with the server
@@ -129,11 +145,15 @@ const ListItemDetails: React.FC = () => {
     }
   };
 
-  const fetchRecommendations = async () => {
+  // `askForMore` is true when the user asks for a fresh set of ideas: the ideas already shown
+  // are sent along so the AI does not repeat them. `currentItems` is the list the ideas are based
+  // on (the caller passes the updated list when it has just added ideas to it).
+  const fetchRecommendations = async (askForMore: boolean = false, currentItems: string[] = items) => {
     setIsAIModalVisible(true);
+    setConfirmNewIdeas(null);
     // The ideas are based on the items' text. With no text yet there is nothing to go on, so say
     // so in a friendly way instead of asking the AI (which would only report an error).
-    if (!items.some((row) => row.replace('✔️', '').trim() !== '')) {
+    if (!currentItems.some((row) => row.replace('✔️', '').trim() !== '')) {
       setAiStatus('nothing');
       return;
     }
@@ -145,8 +165,9 @@ const ListItemDetails: React.FC = () => {
 
     setAiStatus('loading');
     setLoading(true);
+    setSelectedIdeas([]);
     try {
-      const suggestions = await getRecommendations(items);
+      const suggestions = await getRecommendations(currentItems, askForMore ? recommendations : []);
       setRecommendations(suggestions);
       setAiStatus(suggestions.length > 0 ? 'ideas' : 'empty');
     } catch (error) {
@@ -158,9 +179,10 @@ const ListItemDetails: React.FC = () => {
     }
   };
 
-  const getRecommendations = async (currentItems: string[]): Promise<string[]> => {
+  const getRecommendations = async (currentItems: string[], alreadySuggested: string[] = []): Promise<string[]> => {
     const response = await axios.post('/.netlify/functions/recommendations', {
       items: currentItems.filter((item) => item.trim() !== ''),
+      exclude: alreadySuggested,
     });
     const recommendations = response.data?.recommendations;
     if (!Array.isArray(recommendations)) {
@@ -247,6 +269,125 @@ const ListItemDetails: React.FC = () => {
     const wasChecked = newItems[index].startsWith('✔️ ');
     newItems[index] = wasChecked ? `✔️ ${text}` : text;
     setItems(newItems);
+  };
+
+  // Inserting a row in the middle of the list. The rows below, and the pictures that belong to
+  // them, move down by one together, so every picture stays with its own item. Nothing is saved
+  // until Update List is pressed.
+  const insertRowAt = (position: number) => {
+    if (!canEdit) return;
+    setItems((prev) => [...prev.slice(0, position), '', ...prev.slice(position)]);
+    setImages((prev) =>
+      prev.map((image) => (image.index >= position ? { ...image, index: image.index + 1 } : image))
+    );
+    rowToFocus.current = position;
+  };
+
+  // Puts the cursor in the row that was just inserted. A second try covers a long list where the
+  // new row has not been drawn yet.
+  useEffect(() => {
+    const row = rowToFocus.current;
+    if (row === null) return;
+    rowToFocus.current = null;
+    const focusRow = () => rowInputs.current[row]?.focus();
+    if (rowInputs.current[row]) {
+      focusRow();
+    } else {
+      setTimeout(focusRow, 120);
+    }
+  }, [items]);
+
+  // The insert bars follow the row being edited. Leaving the row hides them after a short pause, so
+  // that tapping a bar (which first takes the cursor out of the row) still counts as a tap on it.
+  const cancelHideBars = () => {
+    if (hideBarsTimer.current) {
+      clearTimeout(hideBarsTimer.current);
+      hideBarsTimer.current = null;
+    }
+  };
+  const scheduleHideBars = () => {
+    cancelHideBars();
+    hideBarsTimer.current = setTimeout(() => setActiveRow(null), 250);
+  };
+
+  const handleToggleIdea = (position: number) => {
+    setSelectedIdeas((prev) =>
+      prev.includes(position) ? prev.filter((i) => i !== position) : [...prev, position]
+    );
+  };
+
+  // Adds the ticked ideas to the bottom of the list, one row each. If the last row is empty and
+  // has no picture it is the row waiting for the next item, so the first idea fills it and the
+  // rest go below. Nothing is saved until Update List is pressed. Returns the updated list, or
+  // null when nothing was added.
+  const addSelectedIdeasToList = (): string[] | null => {
+    if (!canEdit) return null;
+    const chosen = recommendations
+      .filter((_, position) => selectedIdeas.includes(position))
+      .map((idea) => idea.trim())
+      .filter((idea) => idea !== '');
+    if (chosen.length === 0) return null;
+
+    const next = [...items];
+    const last = next.length - 1;
+    const lastRowIsFree =
+      last >= 0 &&
+      next[last].replace('✔️', '').trim() === '' &&
+      !images.some((image) => image.index === last);
+    let rest = chosen;
+    if (lastRowIsFree) {
+      next[last] = chosen[0];
+      rest = chosen.slice(1);
+    }
+    const updated = [...next, ...rest];
+    setItems(updated);
+    setSelectedIdeas([]);
+    Toast.show({
+      type: 'success',
+      text1: chosen.length === 1 ? 'Added 1 item' : `Added ${chosen.length} items`,
+      text2: 'Press Update List to save them.',
+    });
+    return updated;
+  };
+
+  // "Add" closes the box once the ideas are in the list.
+  const handleAddSelectedIdeas = () => {
+    if (addSelectedIdeasToList()) {
+      setIsAIModalVisible(false);
+    }
+  };
+
+  // "New ideas" replaces the set. If some ideas are ticked, always ask first, because they would be
+  // lost. With nothing ticked, explain once (the first time on this device) that the ideas shown
+  // will be replaced, then never again, so asking for fresh ideas stays quick.
+  const handleNewIdeas = async () => {
+    if (selectedIdeas.length > 0) {
+      setConfirmNewIdeas('ticked');
+      return;
+    }
+    let alreadyExplained = true;
+    try {
+      alreadyExplained = (await AsyncStorage.getItem(NEW_IDEAS_NOTICE_KEY)) === 'seen';
+    } catch {
+      // If the device storage cannot be read, skip the explanation rather than show it every time.
+    }
+    if (alreadyExplained) {
+      fetchRecommendations(true);
+      return;
+    }
+    try {
+      await AsyncStorage.setItem(NEW_IDEAS_NOTICE_KEY, 'seen');
+    } catch {
+      // Not remembering is harmless: the explanation may simply show once more.
+    }
+    setConfirmNewIdeas('none');
+  };
+
+  // OK on either question. With ticked ideas they go into the list first (the box stays open);
+  // either way a fresh set is shown.
+  const handleConfirmNewIdeas = () => {
+    const updated = addSelectedIdeasToList();
+    fetchRecommendations(true, updated ?? items);
   };
 
   const handleToggleItem = (index: number) => {
@@ -727,7 +868,29 @@ const ListItemDetails: React.FC = () => {
               renderItem={({ item, index }) => {
                 const filterImage = images && images.filter((img) => img.index === index)
                 const isChecked = item.includes('✔️');
+                const showBars = canEdit && activeRow === index;
+                const renderInsertBar = (label: string, position: number) => (
+                  <TouchableOpacity
+                    style={styles.insertBar}
+                    activeOpacity={0.7}
+                    onPressIn={() => {
+                      pressingInsertBar.current = true;
+                      cancelHideBars();
+                    }}
+                    onPress={() => insertRowAt(position)}
+                    onPressOut={() => {
+                      pressingInsertBar.current = false;
+                      scheduleHideBars();
+                    }}
+                    accessibilityLabel={label}
+                  >
+                    <Ionicons name="add" size={15} color={colors.primary} />
+                    <Text style={styles.insertBarText}>{label}</Text>
+                  </TouchableOpacity>
+                );
                 return (
+                  <View>
+                  {showBars && index === 0 && renderInsertBar('Insert above', 0)}
                   <View style={styles.item}>
                     <TouchableOpacity onPress={() => handleToggleItem(index)} disabled={!canEdit} style={{ marginRight: 10 }}>
                       <FontAwesome
@@ -772,6 +935,16 @@ const ListItemDetails: React.FC = () => {
                         multiline={false}
                         value={isChecked ? item.replace('✔️ ', '') : item}
                         onChangeText={(text) => handleItemChange(text, index)}
+                        ref={(input) => { rowInputs.current[index] = input; }}
+                        onFocus={() => {
+                          cancelHideBars();
+                          setActiveRow(index);
+                        }}
+                        onBlur={() => {
+                          if (!pressingInsertBar.current) scheduleHideBars();
+                        }}
+                        blurOnSubmit={false}
+                        onSubmitEditing={() => insertRowAt(index + 1)}
                       />
                     ) : (
                       <Text
@@ -789,6 +962,8 @@ const ListItemDetails: React.FC = () => {
                       </TouchableOpacity>
                     )}
                   </View>
+                  {showBars && index < items.length - 1 && renderInsertBar(index === 0 ? 'Insert below' : 'Insert row', index + 1)}
+                  </View>
                 )
               }}
               keyExtractor={(_, index) => index.toString()} />
@@ -797,7 +972,7 @@ const ListItemDetails: React.FC = () => {
 
           <View style={styles.iconRowContainer}>
             {isUpdateMode && canEdit && (
-              <TouchableOpacity style={styles.iconContainer} onPress={fetchRecommendations}>
+              <TouchableOpacity style={styles.iconContainer} onPress={() => fetchRecommendations()}>
                 <View style={styles.iconCircle}>
                   <Text style={styles.iconEmoji}>💡</Text>
                 </View>
@@ -825,12 +1000,76 @@ const ListItemDetails: React.FC = () => {
                         <Text style={styles.shareLabelInline}>AI Recommendations</Text>
                       </View>
                       <ScrollView style={styles.aiIdeasScroll}>
-                        {recommendations.map((idea, index) => (
-                          <View key={index} style={styles.aiIdeaRow}>
-                            <Text style={styles.aiIdeaText}>{idea}</Text>
-                          </View>
-                        ))}
+                        {recommendations.map((idea, index) => {
+                          const isSelected = selectedIdeas.includes(index);
+                          return (
+                            <TouchableOpacity
+                              key={index}
+                              activeOpacity={0.7}
+                              disabled={confirmNewIdeas !== null}
+                              onPress={() => handleToggleIdea(index)}
+                              style={[styles.aiIdeaRow, isSelected && styles.aiIdeaRowSelected]}
+                            >
+                              <FontAwesome
+                                name={isSelected ? 'check-square-o' : 'square-o'}
+                                size={22}
+                                color={isSelected ? colors.primary : colors.placeholder}
+                              />
+                              <Text style={styles.aiIdeaText}>{idea}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
                       </ScrollView>
+                      {confirmNewIdeas ? (
+                        <View style={styles.aiConfirmBox}>
+                          <Text style={styles.aiConfirmText}>
+                            {confirmNewIdeas === 'none'
+                              ? "You haven't ticked any ideas. These ideas will be replaced and you won't see them again. Continue?"
+                              : selectedIdeas.length === 1
+                                ? "You've ticked 1 idea. It will be added to your list, and then you'll get a fresh set. Continue?"
+                                : `You've ticked ${selectedIdeas.length} ideas. They will be added to your list, and then you'll get a fresh set. Continue?`}
+                          </Text>
+                          <View style={styles.aiConfirmButtons}>
+                            <TouchableOpacity style={[styles.aiConfirmButton, styles.aiConfirmCancel]} onPress={() => setConfirmNewIdeas(null)}>
+                              <Text style={styles.aiConfirmCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.aiConfirmOkTouch} onPress={handleConfirmNewIdeas}>
+                              <LinearGradient
+                                colors={[colors.primary, colors.primaryLight]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.aiConfirmButton}
+                              >
+                                <Text style={styles.aiConfirmOkText}>OK</Text>
+                              </LinearGradient>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ) : (
+                        <View style={styles.aiIdeasFooter}>
+                          <TouchableOpacity style={styles.aiNewIdeas} onPress={handleNewIdeas}>
+                            <Ionicons name="refresh" size={14} color={colors.primary} />
+                            <Text style={styles.aiFooterText}>New ideas</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.aiAddTouch}
+                            activeOpacity={0.85}
+                            disabled={selectedIdeas.length === 0}
+                            onPress={handleAddSelectedIdeas}
+                          >
+                            <LinearGradient
+                              colors={selectedIdeas.length === 0 ? ['#C9C4E8', '#B9B2DE'] : [colors.primary, colors.primaryLight]}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 1 }}
+                              style={styles.aiAddButton}
+                            >
+                              <Text style={styles.aiAddText}>
+                                {selectedIdeas.length === 0 ? 'Select ideas to add' : `Add ${selectedIdeas.length} to list`}
+                              </Text>
+                            </LinearGradient>
+                          </TouchableOpacity>
+                        </View>
+                      )}
                     </View>
                   )}
                   {aiStatus === 'empty' && (
@@ -858,7 +1097,7 @@ const ListItemDetails: React.FC = () => {
                       </View>
                       <Text style={styles.aiStateTitle}>Couldn't load ideas</Text>
                       <Text style={styles.aiStateText}>Something went wrong. Please try again in a little while.</Text>
-                      <TouchableOpacity style={styles.aiTryAgain} onPress={fetchRecommendations}>
+                      <TouchableOpacity style={styles.aiTryAgain} onPress={() => fetchRecommendations()}>
                         <Ionicons name="refresh" size={14} color={colors.primary} />
                         <Text style={styles.aiTryAgainText}>Try again</Text>
                       </TouchableOpacity>
@@ -1444,14 +1683,104 @@ const styles = StyleSheet.create({
     maxHeight: 260,
   },
   aiIdeaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     paddingVertical: 11,
+    paddingHorizontal: 8,
     borderTopWidth: 1,
     borderTopColor: colors.divider,
   },
+  aiIdeaRowSelected: {
+    backgroundColor: 'rgba(106,91,214,0.10)',
+  },
   aiIdeaText: {
+    flex: 1,
     fontFamily: fonts.body,
     fontSize: 14,
     color: colors.text,
+  },
+  aiIdeasFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 14,
+  },
+  // Both footer buttons are 42 high with 13 text, like Replace image and Remove in the viewer.
+  aiNewIdeas: {
+    height: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    borderRadius: radii.pill,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(106,91,214,0.07)',
+  },
+  aiFooterText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.primary,
+  },
+  aiAddTouch: {
+    flex: 1,
+  },
+  aiAddButton: {
+    height: 42,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiAddText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: '#fff',
+  },
+  aiConfirmBox: {
+    marginTop: 14,
+    padding: 12,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: '#EFC98A',
+    backgroundColor: '#FAEEDA',
+  },
+  aiConfirmText: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#633806',
+    marginBottom: 10,
+  },
+  aiConfirmButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  aiConfirmOkTouch: {
+    flex: 1,
+  },
+  aiConfirmButton: {
+    flex: 1,
+    height: 38,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiConfirmCancel: {
+    borderWidth: 1.5,
+    borderColor: 'rgba(106,91,214,0.45)',
+    backgroundColor: '#fff',
+  },
+  aiConfirmCancelText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.primary,
+  },
+  aiConfirmOkText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: '#fff',
   },
   shareLabel: {
     fontFamily: fonts.bodyBold,
@@ -1604,6 +1933,24 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  insertBar: {
+    height: 30,
+    marginVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(106,91,214,0.45)',
+    backgroundColor: 'rgba(106,91,214,0.05)',
+  },
+  insertBarText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: colors.primary,
   },
   emptyViewNote: {
     fontFamily: fonts.body,
