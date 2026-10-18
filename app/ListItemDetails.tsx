@@ -25,6 +25,42 @@ const NEW_IDEAS_NOTICE_KEY = 'aiNewIdeasNoticeSeen';
 
 type ListItemDetailsRouteProp = RouteProp<RootStackParamList, 'ListItemDetails'>;
 
+// The six-dot handle on the left of a row. Only this handle starts a drag, so scrolling or tapping
+// anywhere else on the row never moves it. It reports the drag to the screen, which does the work.
+const RowDragHandle: React.FC<{
+  onStart: () => void;
+  onMove: (dy: number) => void;
+  onEnd: (dy: number, cancelled: boolean) => void;
+}> = ({ onStart, onMove, onEnd }) => {
+  const latest = useRef({ onStart, onMove, onEnd });
+  latest.current = { onStart, onMove, onEnd };
+  const responder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: () => latest.current.onStart(),
+      onPanResponderMove: (_, gesture) => latest.current.onMove(gesture.dy),
+      onPanResponderRelease: (_, gesture) => latest.current.onEnd(gesture.dy, false),
+      onPanResponderTerminate: () => latest.current.onEnd(0, true),
+    })
+  ).current;
+  return (
+    <View
+      {...responder.panHandlers}
+      accessibilityLabel="Drag to reorder"
+      style={[styles.dragHandle, { cursor: 'grab', touchAction: 'none', userSelect: 'none' } as any]}
+    >
+      {[0, 1, 2].map((row) => (
+        <View key={row} style={styles.dragHandleRow}>
+          <View style={styles.dragHandleDot} />
+          <View style={styles.dragHandleDot} />
+        </View>
+      ))}
+    </View>
+  );
+};
+
 const ListItemDetails: React.FC = () => {
   const route = useRoute<ListItemDetailsRouteProp>();
   const navigation = useNavigation<StackNavigationProp<RootStackParamList, 'Home'>>();
@@ -43,10 +79,10 @@ const ListItemDetails: React.FC = () => {
   const [images, setImages] = useState<ImageData[]>([]);
   // The pictures as the server has them, to know whether anything changed when saving.
   const loadedPictures = useRef<{ id: number; index: number }[]>([]);
-  // Row whose text is being edited. While it is set, the slim "Insert row" bars show next to it.
-  const [activeRow, setActiveRow] = useState<number | null>(null);
-  const hideBarsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pressingInsertBar = useRef(false);
+  // Row being dragged to a new place with its handle, and how far it has moved (null = no drag).
+  const [drag, setDrag] = useState<{ from: number; dy: number } | null>(null);
+  // Height of every row, to work out which row the dragged one is over.
+  const rowHeights = useRef<number[]>([]);
   const rowInputs = useRef<Record<number, TextInput | null>>({});
   // Row that should receive the cursor once the list has been redrawn after an insert.
   const rowToFocus = useRef<number | null>(null);
@@ -72,8 +108,9 @@ const ListItemDetails: React.FC = () => {
   const [selectedIdeas, setSelectedIdeas] = useState<number[]>([]);
   // Set while the box asks the user to confirm before "New ideas" replaces the set: 'ticked' when
   // some ideas are ticked (they would be added to the list first), 'none' when nothing is ticked
-  // (a one-time explanation that the ideas shown will be gone).
-  const [confirmNewIdeas, setConfirmNewIdeas] = useState<'ticked' | 'none' | null>(null);
+  // (a one-time explanation that the ideas shown will be gone). 'close' is set when the X is
+  // pressed while ideas are ticked, because closing would discard them.
+  const [confirmNewIdeas, setConfirmNewIdeas] = useState<'ticked' | 'none' | 'close' | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Editing an existing list starts view-only; the real permission is confirmed with the server
@@ -297,17 +334,40 @@ const ListItemDetails: React.FC = () => {
     }
   }, [items]);
 
-  // The insert bars follow the row being edited. Leaving the row hides them after a short pause, so
-  // that tapping a bar (which first takes the cursor out of the row) still counts as a tap on it.
-  const cancelHideBars = () => {
-    if (hideBarsTimer.current) {
-      clearTimeout(hideBarsTimer.current);
-      hideBarsTimer.current = null;
+  // Where the dragged row would land, from how far it has moved: the row whose area holds the
+  // middle of the dragged row.
+  const dropIndexFor = (from: number, dy: number, count: number): number => {
+    const heights = Array.from({ length: count }, (_, row) => rowHeights.current[row] || 40);
+    let top = 0;
+    for (let row = 0; row < from; row += 1) top += heights[row];
+    const middle = top + heights[from] / 2 + dy;
+    let rowTop = 0;
+    for (let row = 0; row < count; row += 1) {
+      if (middle < rowTop + heights[row]) return row;
+      rowTop += heights[row];
     }
+    return count - 1;
   };
-  const scheduleHideBars = () => {
-    cancelHideBars();
-    hideBarsTimer.current = setTimeout(() => setActiveRow(null), 250);
+
+  // Moves a row to a new place. The rows in between shift by one, and every picture moves with
+  // its own row, so each picture stays with the item it belongs to. Nothing is saved until
+  // Update List is pressed.
+  const moveRow = (from: number, to: number) => {
+    if (!canEdit || from === to) return;
+    setItems((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+    setImages((prev) =>
+      prev.map((image) => {
+        if (image.index === from) return { ...image, index: to };
+        if (from < to && image.index > from && image.index <= to) return { ...image, index: image.index - 1 };
+        if (to < from && image.index >= to && image.index < from) return { ...image, index: image.index + 1 };
+        return image;
+      })
+    );
   };
 
   const handleToggleIdea = (position: number) => {
@@ -381,6 +441,22 @@ const ListItemDetails: React.FC = () => {
       // Not remembering is harmless: the explanation may simply show once more.
     }
     setConfirmNewIdeas('none');
+  };
+
+  // The X closes the box. If ideas are ticked, ask first, because closing discards them.
+  const handleCloseIdeasBox = () => {
+    if (selectedIdeas.length > 0) {
+      setConfirmNewIdeas('close');
+    } else {
+      setIsAIModalVisible(false);
+    }
+  };
+
+  // "Discard" on that question: close the box without adding anything to the list.
+  const handleDiscardAndClose = () => {
+    setConfirmNewIdeas(null);
+    setSelectedIdeas([]);
+    setIsAIModalVisible(false);
   };
 
   // OK on either question. With ticked ideas they go into the list first (the box stays open);
@@ -868,30 +944,39 @@ const ListItemDetails: React.FC = () => {
               renderItem={({ item, index }) => {
                 const filterImage = images && images.filter((img) => img.index === index)
                 const isChecked = item.includes('✔️');
-                const showBars = canEdit && activeRow === index;
-                const renderInsertBar = (label: string, position: number) => (
-                  <TouchableOpacity
-                    style={styles.insertBar}
-                    activeOpacity={0.7}
-                    onPressIn={() => {
-                      pressingInsertBar.current = true;
-                      cancelHideBars();
-                    }}
-                    onPress={() => insertRowAt(position)}
-                    onPressOut={() => {
-                      pressingInsertBar.current = false;
-                      scheduleHideBars();
-                    }}
-                    accessibilityLabel={label}
-                  >
-                    <Ionicons name="add" size={15} color={colors.primary} />
-                    <Text style={styles.insertBarText}>{label}</Text>
-                  </TouchableOpacity>
-                );
+                // While a row is dragged: it follows the pointer, and the rows between its old and new
+                // place slide out of the way by one row height.
+                const dropTo = drag ? dropIndexFor(drag.from, drag.dy, items.length) : null;
+                const dragHeight = drag ? rowHeights.current[drag.from] || 40 : 0;
+                let slide = 0;
+                if (drag && dropTo !== null && index !== drag.from) {
+                  if (drag.from < dropTo && index > drag.from && index <= dropTo) slide = -dragHeight;
+                  if (dropTo < drag.from && index >= dropTo && index < drag.from) slide = dragHeight;
+                }
+                const isDragged = drag !== null && drag.from === index;
+                const dragStyle = drag
+                  ? ([
+                      isDragged ? styles.rowLifted : null,
+                      { transform: [{ translateY: isDragged ? drag.dy : slide }], userSelect: 'none' },
+                      !isDragged ? { transitionProperty: 'transform', transitionDuration: '120ms' } : null,
+                    ] as any)
+                  : undefined;
                 return (
-                  <View>
-                  {showBars && index === 0 && renderInsertBar('Insert above', 0)}
+                  <View
+                    style={dragStyle}
+                    onLayout={(event) => { rowHeights.current[index] = event.nativeEvent.layout.height; }}
+                  >
                   <View style={styles.item}>
+                    {canEdit && (
+                      <RowDragHandle
+                        onStart={() => setDrag({ from: index, dy: 0 })}
+                        onMove={(dy) => setDrag({ from: index, dy })}
+                        onEnd={(dy, cancelled) => {
+                          if (!cancelled) moveRow(index, dropIndexFor(index, dy, items.length));
+                          setDrag(null);
+                        }}
+                      />
+                    )}
                     <TouchableOpacity onPress={() => handleToggleItem(index)} disabled={!canEdit} style={{ marginRight: 10 }}>
                       <FontAwesome
                         name={isChecked ? "check-square-o" : "square-o"}
@@ -936,13 +1021,6 @@ const ListItemDetails: React.FC = () => {
                         value={isChecked ? item.replace('✔️ ', '') : item}
                         onChangeText={(text) => handleItemChange(text, index)}
                         ref={(input) => { rowInputs.current[index] = input; }}
-                        onFocus={() => {
-                          cancelHideBars();
-                          setActiveRow(index);
-                        }}
-                        onBlur={() => {
-                          if (!pressingInsertBar.current) scheduleHideBars();
-                        }}
                         blurOnSubmit={false}
                         onSubmitEditing={() => insertRowAt(index + 1)}
                       />
@@ -962,7 +1040,6 @@ const ListItemDetails: React.FC = () => {
                       </TouchableOpacity>
                     )}
                   </View>
-                  {showBars && index < items.length - 1 && renderInsertBar(index === 0 ? 'Insert below' : 'Insert row', index + 1)}
                   </View>
                 )
               }}
@@ -982,7 +1059,7 @@ const ListItemDetails: React.FC = () => {
             {isAIModalVisible && (
               <View style={styles.shareOverlay}>
                 <GlassCard style={styles.shareCard} contentStyle={styles.shareCardContent} tint={colors.glassBgStrong}>
-                  <TouchableOpacity style={styles.shareCloseButton} onPress={() => setIsAIModalVisible(false)}>
+                  <TouchableOpacity style={styles.shareCloseButton} onPress={handleCloseIdeasBox}>
                     <Ionicons name="close" size={18} color={colors.danger} />
                   </TouchableOpacity>
                   <Text style={styles.shareTitle}>Ideas for your list</Text>
@@ -1020,7 +1097,33 @@ const ListItemDetails: React.FC = () => {
                           );
                         })}
                       </ScrollView>
-                      {confirmNewIdeas ? (
+                      {confirmNewIdeas === 'close' ? (
+                        <View style={styles.aiConfirmBox}>
+                          <Text style={styles.aiConfirmTitle}>
+                            {selectedIdeas.length === 1 ? 'Discard 1 ticked idea?' : `Discard ${selectedIdeas.length} ticked ideas?`}
+                          </Text>
+                          <Text style={styles.aiConfirmText}>
+                            {selectedIdeas.length === 1
+                              ? "It hasn't been added to your list."
+                              : "They haven't been added to your list."}
+                          </Text>
+                          <View style={styles.aiConfirmButtons}>
+                            <TouchableOpacity style={[styles.aiConfirmButton, styles.aiConfirmDiscard]} onPress={handleDiscardAndClose}>
+                              <Text style={styles.aiConfirmDiscardText}>Discard</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.aiConfirmOkTouch} onPress={() => setConfirmNewIdeas(null)}>
+                              <LinearGradient
+                                colors={[colors.primary, colors.primaryLight]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.aiConfirmButton}
+                              >
+                                <Text style={styles.aiConfirmOkText}>Keep editing</Text>
+                              </LinearGradient>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ) : confirmNewIdeas ? (
                         <View style={styles.aiConfirmBox}>
                           <Text style={styles.aiConfirmText}>
                             {confirmNewIdeas === 'none'
@@ -1777,6 +1880,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.primary,
   },
+  aiConfirmTitle: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: '#633806',
+    marginBottom: 2,
+  },
+  aiConfirmDiscard: {
+    borderWidth: 1.5,
+    borderColor: 'rgba(226,83,107,0.5)',
+    backgroundColor: '#fff',
+  },
+  aiConfirmDiscardText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.danger,
+  },
   aiConfirmOkText: {
     fontFamily: fonts.bodyBold,
     fontSize: 13,
@@ -1934,23 +2053,32 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  insertBar: {
+  dragHandle: {
+    width: 20,
     height: 30,
-    marginVertical: 4,
-    flexDirection: 'row',
+    marginRight: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: 'rgba(106,91,214,0.45)',
-    backgroundColor: 'rgba(106,91,214,0.05)',
+    gap: 3,
   },
-  insertBarText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: colors.primary,
+  dragHandleRow: {
+    flexDirection: 'row',
+    gap: 3,
+  },
+  dragHandleDot: {
+    width: 3.5,
+    height: 3.5,
+    borderRadius: 2,
+    backgroundColor: '#B3AEC9',
+  },
+  rowLifted: {
+    zIndex: 10,
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    borderRadius: radii.sm,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
   },
   emptyViewNote: {
     fontFamily: fonts.body,
