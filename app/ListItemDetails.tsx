@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, FlatList, PanResponder } from 'react-native';
 import { RouteProp, useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { ImageData, ListItem, RootStackParamList, User } from './type';
@@ -43,6 +43,13 @@ const ListItemDetails: React.FC = () => {
   const [images, setImages] = useState<ImageData[]>([]);
   // The pictures as the server has them, to know whether anything changed when saving.
   const loadedPictures = useRef<{ id: number; index: number }[]>([]);
+  // Row whose text is being edited. While it is set, the slim "Insert row" bars show next to it.
+  const [activeRow, setActiveRow] = useState<number | null>(null);
+  const hideBarsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pressingInsertBar = useRef(false);
+  const rowInputs = useRef<Record<number, TextInput | null>>({});
+  // Row that should receive the cursor once the list has been redrawn after an insert.
+  const rowToFocus = useRef<number | null>(null);
   // Row currently shown in the picture viewer (null = viewer closed).
   const [viewerRow, setViewerRow] = useState<number | null>(null);
   const viewerRowRef = useRef<number | null>(null);
@@ -262,6 +269,45 @@ const ListItemDetails: React.FC = () => {
     const wasChecked = newItems[index].startsWith('✔️ ');
     newItems[index] = wasChecked ? `✔️ ${text}` : text;
     setItems(newItems);
+  };
+
+  // Inserting a row in the middle of the list. The rows below, and the pictures that belong to
+  // them, move down by one together, so every picture stays with its own item. Nothing is saved
+  // until Update List is pressed.
+  const insertRowAt = (position: number) => {
+    if (!canEdit) return;
+    setItems((prev) => [...prev.slice(0, position), '', ...prev.slice(position)]);
+    setImages((prev) =>
+      prev.map((image) => (image.index >= position ? { ...image, index: image.index + 1 } : image))
+    );
+    rowToFocus.current = position;
+  };
+
+  // Puts the cursor in the row that was just inserted. A second try covers a long list where the
+  // new row has not been drawn yet.
+  useEffect(() => {
+    const row = rowToFocus.current;
+    if (row === null) return;
+    rowToFocus.current = null;
+    const focusRow = () => rowInputs.current[row]?.focus();
+    if (rowInputs.current[row]) {
+      focusRow();
+    } else {
+      setTimeout(focusRow, 120);
+    }
+  }, [items]);
+
+  // The insert bars follow the row being edited. Leaving the row hides them after a short pause, so
+  // that tapping a bar (which first takes the cursor out of the row) still counts as a tap on it.
+  const cancelHideBars = () => {
+    if (hideBarsTimer.current) {
+      clearTimeout(hideBarsTimer.current);
+      hideBarsTimer.current = null;
+    }
+  };
+  const scheduleHideBars = () => {
+    cancelHideBars();
+    hideBarsTimer.current = setTimeout(() => setActiveRow(null), 250);
   };
 
   const handleToggleIdea = (position: number) => {
@@ -822,7 +868,29 @@ const ListItemDetails: React.FC = () => {
               renderItem={({ item, index }) => {
                 const filterImage = images && images.filter((img) => img.index === index)
                 const isChecked = item.includes('✔️');
+                const showBars = canEdit && activeRow === index;
+                const renderInsertBar = (label: string, position: number) => (
+                  <TouchableOpacity
+                    style={styles.insertBar}
+                    activeOpacity={0.7}
+                    onPressIn={() => {
+                      pressingInsertBar.current = true;
+                      cancelHideBars();
+                    }}
+                    onPress={() => insertRowAt(position)}
+                    onPressOut={() => {
+                      pressingInsertBar.current = false;
+                      scheduleHideBars();
+                    }}
+                    accessibilityLabel={label}
+                  >
+                    <Ionicons name="add" size={15} color={colors.primary} />
+                    <Text style={styles.insertBarText}>{label}</Text>
+                  </TouchableOpacity>
+                );
                 return (
+                  <View>
+                  {showBars && index === 0 && renderInsertBar('Insert above', 0)}
                   <View style={styles.item}>
                     <TouchableOpacity onPress={() => handleToggleItem(index)} disabled={!canEdit} style={{ marginRight: 10 }}>
                       <FontAwesome
@@ -867,6 +935,16 @@ const ListItemDetails: React.FC = () => {
                         multiline={false}
                         value={isChecked ? item.replace('✔️ ', '') : item}
                         onChangeText={(text) => handleItemChange(text, index)}
+                        ref={(input) => { rowInputs.current[index] = input; }}
+                        onFocus={() => {
+                          cancelHideBars();
+                          setActiveRow(index);
+                        }}
+                        onBlur={() => {
+                          if (!pressingInsertBar.current) scheduleHideBars();
+                        }}
+                        blurOnSubmit={false}
+                        onSubmitEditing={() => insertRowAt(index + 1)}
                       />
                     ) : (
                       <Text
@@ -883,6 +961,8 @@ const ListItemDetails: React.FC = () => {
                         <Feather name="trash-2" size={20} color={colors.danger} />
                       </TouchableOpacity>
                     )}
+                  </View>
+                  {showBars && index < items.length - 1 && renderInsertBar(index === 0 ? 'Insert below' : 'Insert row', index + 1)}
                   </View>
                 )
               }}
@@ -1853,6 +1933,24 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  insertBar: {
+    height: 30,
+    marginVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(106,91,214,0.45)',
+    backgroundColor: 'rgba(106,91,214,0.05)',
+  },
+  insertBarText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: colors.primary,
   },
   emptyViewNote: {
     fontFamily: fonts.body,
