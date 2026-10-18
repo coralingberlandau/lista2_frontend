@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, useWindowDimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
@@ -24,6 +24,9 @@ type HomeProps = {
 };
 
 const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
+  // On a wide window the list is a centered column, so the add button follows the column's right edge.
+  const { width: windowWidth } = useWindowDimensions();
+  const addButtonRight = 30 + Math.max(0, (windowWidth - 760) / 2);
   const [listItems, setListItems] = useState<ListItem[]>([]);
   const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -177,7 +180,7 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
         )}
       </ScrollView>
       {!loading && (
-        <TouchableOpacity style={styles.addButton} onPress={handleAddListItem}>
+        <TouchableOpacity style={[styles.addButton, { right: addButtonRight }]} onPress={handleAddListItem}>
           <AntDesign name="plus" size={24} color="#fff" />
         </TouchableOpacity>
       )}
@@ -192,6 +195,10 @@ const styles = StyleSheet.create({
   },
   container: {
     flexGrow: 1,
+    // A centered column on wide screens instead of stretching across the whole window.
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
     padding: 24,
     paddingTop: 56,
     paddingBottom: 110,

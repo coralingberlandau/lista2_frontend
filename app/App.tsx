@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useWindowDimensions } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -42,6 +43,7 @@ const navigationTheme = {
 };
 
 const App: React.FC = () => {
+  const { width: windowWidth } = useWindowDimensions();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [fontsLoaded] = useFonts({
     Fraunces_600SemiBold,
@@ -107,6 +109,8 @@ const App: React.FC = () => {
               bottom: 0,
               backgroundColor: 'rgba(255,255,255,0.75)',
               borderTopColor: colors.glassBorder,
+              // On a wide window the two tabs stay together in the middle instead of at the far edges.
+              paddingHorizontal: Math.max(0, (windowWidth - 520) / 2),
             },
             tabBarLabelStyle: {
               fontFamily: fonts.bodyMedium,
