@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, FlatList, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, FlatList, PanResponder, useWindowDimensions } from 'react-native';
 import { RouteProp, useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { ImageData, ListItem, RootStackParamList, User } from './type';
 import { Ionicons, AntDesign, FontAwesome, Feather } from '@expo/vector-icons';
@@ -62,6 +62,14 @@ const RowDragHandle: React.FC<{
 };
 
 const ListItemDetails: React.FC = () => {
+  // The size of the window right now. It updates when the window is resized or the phone is
+  // rotated, so the layout below follows it.
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const isNarrow = windowWidth < 720;
+  // Pop-ups (viewer, AI ideas, share, delete) sit in the middle of the screen. On a short screen,
+  // such as a phone turned sideways, they leave room for the tab bar and scroll if they are still
+  // taller than what is left, so the close button and every control stay reachable.
+  const overlayRoom = { paddingTop: 16, paddingBottom: windowHeight < 640 ? 80 : 16 };
   const route = useRoute<ListItemDetailsRouteProp>();
   const navigation = useNavigation<StackNavigationProp<RootStackParamList, 'Home'>>();
   const { listItem }: { listItem?: ListItem } = route.params || {};
@@ -919,7 +927,7 @@ const ListItemDetails: React.FC = () => {
     <View style={{ flex: 1 }}>
       <AppBackground />
       <View style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView contentContainerStyle={[styles.container, isNarrow && styles.containerNarrow]}>
           <View style={styles.titleBlock}>
             {canEdit ? (
               <TextInput
@@ -1057,7 +1065,7 @@ const ListItemDetails: React.FC = () => {
               </TouchableOpacity>
             )}
             {isAIModalVisible && (
-              <View style={styles.shareOverlay}>
+              <View style={[styles.shareOverlay, overlayRoom]}>
                 <GlassCard style={styles.shareCard} contentStyle={styles.shareCardContent} tint={colors.glassBgStrong}>
                   <TouchableOpacity style={styles.shareCloseButton} onPress={handleCloseIdeasBox}>
                     <Ionicons name="close" size={18} color={colors.danger} />
@@ -1076,7 +1084,7 @@ const ListItemDetails: React.FC = () => {
                         <Text style={styles.aiLabelEmoji}>💡</Text>
                         <Text style={styles.shareLabelInline}>AI Recommendations</Text>
                       </View>
-                      <ScrollView style={styles.aiIdeasScroll}>
+                      <ScrollView style={[styles.aiIdeasScroll, { maxHeight: Math.max(80, Math.min(260, windowHeight - 295)) }]}>
                         {recommendations.map((idea, index) => {
                           const isSelected = selectedIdeas.includes(index);
                           return (
@@ -1218,7 +1226,7 @@ const ListItemDetails: React.FC = () => {
               </TouchableOpacity>
             )}
             {isModalVisible && (
-              <View style={styles.shareOverlay}>
+              <View style={[styles.shareOverlay, overlayRoom]}>
                 <GlassCard style={styles.shareCard} contentStyle={styles.shareCardContent} tint={colors.glassBgStrong}>
                   <TouchableOpacity
                     style={styles.shareCloseButton}
@@ -1365,7 +1373,7 @@ const ListItemDetails: React.FC = () => {
               </TouchableOpacity>
             )}
             {viewerOpen && (
-              <View style={styles.viewerOverlay}>
+              <View style={[styles.viewerOverlay, overlayRoom]}>
                 <GlassCard style={styles.viewerCard} contentStyle={styles.viewerCardContent} tint={colors.glassBgStrong}>
                   <TouchableOpacity style={styles.shareCloseButton} onPress={closeViewer} accessibilityLabel="Close picture viewer">
                     <Ionicons name="close" size={18} color={colors.danger} />
@@ -1373,7 +1381,7 @@ const ListItemDetails: React.FC = () => {
                   <Text style={styles.shareTitle} numberOfLines={1}>{viewerTitle}</Text>
                   <View style={styles.shareTitleRule} />
                   <Text style={styles.viewerPosition}>{(viewerRow as number) + 1} of {items.length}</Text>
-                  <View style={styles.viewerFrame} {...swipeResponder.panHandlers}>
+                  <View style={[styles.viewerFrame, { maxHeight: Math.max(96, windowHeight - 310) }]} {...swipeResponder.panHandlers}>
                     {viewerPicture ? (
                       <Image
                         source={{ uri: viewerPicture.uri }}
@@ -1446,7 +1454,7 @@ const ListItemDetails: React.FC = () => {
               </View>
             )}
             {isDeleteConfirmVisible && (
-              <View style={styles.shareOverlay}>
+              <View style={[styles.shareOverlay, overlayRoom]}>
                 <GlassCard style={styles.shareCard} contentStyle={styles.shareCardContent} tint={colors.glassBgStrong}>
                   <TouchableOpacity style={styles.shareCloseButton} onPress={() => setIsDeleteConfirmVisible(false)}>
                     <Ionicons name="close" size={18} color={colors.danger} />
@@ -1503,11 +1511,22 @@ const ListItemDetails: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  // flexGrow (not flex: 1) so the bottom padding counts as scrollable space: with flex: 1 the last
+  // buttons of a long list ended up hidden under the tab bar. On wide screens the content is a
+  // centered column instead of stretching across the whole window.
   container: {
-    flex: 1,
+    flexGrow: 1,
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
     padding: 20,
     paddingTop: 52,
     paddingBottom: 110,
+  },
+  // On narrow screens the AI / Share / Check All / Delete icons sit above the title instead of
+  // overlapping it.
+  containerNarrow: {
+    paddingTop: 84,
   },
   titleBlock: {
     alignItems: 'center',
@@ -1622,8 +1641,8 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     display: 'flex',
-    justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'auto' as any,
     zIndex: 1,
     backgroundColor: 'rgba(38,34,59,0.35)',
   },
@@ -1631,6 +1650,7 @@ const styles = StyleSheet.create({
     width: '88%',
     maxWidth: 380,
     borderRadius: radii.xl,
+    marginVertical: 'auto' as any,
   },
   shareCardContent: {
     paddingHorizontal: 22,
@@ -2099,8 +2119,8 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     display: 'flex',
-    justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'auto' as any,
     zIndex: 2,
     backgroundColor: 'rgba(38,34,59,0.78)',
   },
@@ -2108,6 +2128,7 @@ const styles = StyleSheet.create({
     width: '90%',
     maxWidth: 420,
     borderRadius: radii.xl,
+    marginVertical: 'auto' as any,
   },
   viewerCardContent: {
     paddingHorizontal: 18,

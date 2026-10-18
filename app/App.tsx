@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -42,6 +43,15 @@ const navigationTheme = {
 };
 
 const App: React.FC = () => {
+
+  // On the web, paint the page itself in the app's colour, so nothing white or black shows around
+  // the app at the edges of a phone screen (notch area, overscroll) or before it has loaded.
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.documentElement.style.backgroundColor = colors.background;
+      document.body.style.backgroundColor = colors.background;
+    }
+  }, []);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [fontsLoaded] = useFonts({
     Fraunces_600SemiBold,
@@ -107,6 +117,10 @@ const App: React.FC = () => {
               bottom: 0,
               backgroundColor: 'rgba(255,255,255,0.75)',
               borderTopColor: colors.glassBorder,
+              // On a wide window the two tabs stay together in the middle instead of at the far edges.
+              // Pure CSS (no number taken from the window size), so it can never make the page
+              // wider than the screen, whatever the screen size.
+              paddingHorizontal: 'max(0px, calc((100vw - 520px) / 2))' as any,
             },
             tabBarLabelStyle: {
               fontFamily: fonts.bodyMedium,

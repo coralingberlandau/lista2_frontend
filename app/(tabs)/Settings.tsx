@@ -291,6 +291,10 @@ const styles = StyleSheet.create({
   },
   container: {
     flexGrow: 1,
+    // A centered column on wide screens instead of stretching across the whole window.
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
     padding: 20,
     paddingTop: 56,
     paddingBottom: 110,
