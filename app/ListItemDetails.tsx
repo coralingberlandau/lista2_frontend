@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, FlatList, PanResponder, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, PanResponder, useWindowDimensions } from 'react-native';
 import { RouteProp, useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { ImageData, ListItem, RootStackParamList, User } from './type';
 import { Ionicons, AntDesign, FontAwesome, Feather } from '@expo/vector-icons';
@@ -946,10 +946,11 @@ const ListItemDetails: React.FC = () => {
             {!canEdit && listIsEmpty ? (
               <Text style={styles.emptyViewNote}>No items yet</Text>
             ) : (
-            <FlatList
-              data={items}
-              scrollEnabled={false}
-              renderItem={({ item, index }) => {
+            <View>
+              {/* A plain column of rows, not a FlatList: a FlatList with scrolling switched off gets
+                  touch-action: none on the web, which stops a finger drag that starts on a row from
+                  scrolling the page on a phone (iPhone Safari and Android Chrome). */}
+              {items.map((item, index) => {
                 const filterImage = images && images.filter((img) => img.index === index)
                 const isChecked = item.includes('✔️');
                 // While a row is dragged: it follows the pointer, and the rows between its old and new
@@ -971,6 +972,7 @@ const ListItemDetails: React.FC = () => {
                   : undefined;
                 return (
                   <View
+                    key={index}
                     style={dragStyle}
                     onLayout={(event) => { rowHeights.current[index] = event.nativeEvent.layout.height; }}
                   >
@@ -1050,8 +1052,8 @@ const ListItemDetails: React.FC = () => {
                   </View>
                   </View>
                 )
-              }}
-              keyExtractor={(_, index) => index.toString()} />
+              })}
+            </View>
             )}
           </GlassCard>
 
@@ -1565,7 +1567,7 @@ const styles = StyleSheet.create({
     flex: 2,
     borderWidth: 0,
     paddingLeft: 10,
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fonts.body,
     color: colors.text,
   },
@@ -2066,6 +2068,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     backgroundColor: colors.inputBg,
     fontFamily: fonts.body,
+    fontSize: 16,
     color: colors.text,
   },
   confirmButtonText: {

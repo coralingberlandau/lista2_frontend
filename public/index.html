@@ -21,6 +21,22 @@
       body {
         overflow: hidden;
       }
+      /* iPhone / mobile browsers:
+         - overscroll-behavior: stops a drag at the end of a list from chaining to the page itself
+           (iPhone Safari ignores "overflow: hidden" on body, so the whole app could otherwise bounce
+           or move, and Android Chrome could pull-to-refresh and lose unsaved edits).
+         - touch-action: manipulation: no double-tap zoom, so a quick double tap on a row or a button
+           cannot leave the page zoomed in. Scrolling and pinch zoom still work.
+         - text-size-adjust: keeps iOS from enlarging text when the phone is rotated. */
+      html,
+      body {
+        overscroll-behavior: none;
+      }
+      html {
+        touch-action: manipulation;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
       /* These styles make the root element full-height */
       #root {
         display: flex;
