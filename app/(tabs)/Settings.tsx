@@ -8,7 +8,7 @@ import { RootStackParamList } from '../type';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { Image } from 'react-native';
 import axios from 'axios';
-import { FlatList, ScrollView } from 'react-native-gesture-handler';
+import { ScrollView } from 'react-native-gesture-handler';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import debounce from 'lodash/debounce';
@@ -157,51 +157,8 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
     await handleBackgroundChange(CUSTOM_BACKGROUND_ID);
   };
 
-  return (
-    <View style={styles.root}>
-      <AppBackground overrideId={selectedImage} overrideCustomUri={customUri} />
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.headerContainer}>
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <AntDesign name="logout" size={17} color={colors.danger} />
-          </TouchableOpacity>
-          <View style={styles.titleBlock}>
-            <Text style={styles.title}>{appName}</Text>
-            <View style={styles.titleRule} />
-            <Text style={styles.version}>Version {version}</Text>
-          </View>
-        </View>
-
-        <GlassCard style={styles.card} contentStyle={styles.cardContent}>
-          <View style={[styles.sectionLabelRow, styles.sectionLabelRowSpaced]}>
-            <Ionicons name="help-circle-outline" size={14} color={colors.text} />
-            <Text style={styles.sectionLabel}>Support</Text>
-          </View>
-          <Text style={styles.supportInfo}>For assistance, please contact Lista support:</Text>
-          <TouchableOpacity onPress={handleEmailPress}>
-            <Text style={styles.supportContact}>{supportContact}</Text>
-          </TouchableOpacity>
-          <Text style={styles.inspirationText}>Keep achieving great things with Lista.</Text>
-          <Text style={styles.inspirationText}>We're here to make your life easier and more organized. </Text>
-        </GlassCard>
-
-        <TouchableOpacity onPress={navigateToEditProfile}>
-          <GlassCard style={styles.card} contentStyle={[styles.cardContent, styles.sectionLabelRow]}>
-            <Ionicons name="pencil-outline" size={14} color={colors.primary} />
-            <Text style={styles.sectionLabel}>Edit Profile</Text>
-          </GlassCard>
-        </TouchableOpacity>
-
-        <GlassCard style={styles.card} contentStyle={styles.cardContent}>
-          <View style={[styles.sectionLabelRow, styles.sectionLabelRowSpaced]}>
-            <Ionicons name="color-palette-outline" size={14} color={colors.text} />
-            <Text style={styles.sectionLabel}>Background</Text>
-          </View>
-          <FlatList
-            style={styles.backgroundGridWrap}
-            data={swatches}
-            scrollEnabled={false}
-            renderItem={({ item }: { item: Swatch }) => {
+  // One background choice in the grid below.
+  const renderSwatch = (item: Swatch) => {
               if (item.kind === 'default') {
                 const isSelected = selectedImage === DEFAULT_BACKGROUND_ID || selectedImage === null;
                 return (
@@ -268,10 +225,66 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
                   )}
                 </TouchableOpacity>
               );
-            }}
-            keyExtractor={(_, index) => index.toString()}
-            numColumns={4}
-          />
+  };
+
+  // The swatches in rows of four, like the grid always looked.
+  const swatchRows: Swatch[][] = [];
+  for (let start = 0; start < swatches.length; start += 4) {
+    swatchRows.push(swatches.slice(start, start + 4));
+  }
+
+  return (
+    <View style={styles.root}>
+      <AppBackground overrideId={selectedImage} overrideCustomUri={customUri} />
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.headerContainer}>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+            <AntDesign name="logout" size={17} color={colors.danger} />
+          </TouchableOpacity>
+          <View style={styles.titleBlock}>
+            <Text style={styles.title}>{appName}</Text>
+            <View style={styles.titleRule} />
+            <Text style={styles.version}>Version {version}</Text>
+          </View>
+        </View>
+
+        <GlassCard style={styles.card} contentStyle={styles.cardContent}>
+          <View style={[styles.sectionLabelRow, styles.sectionLabelRowSpaced]}>
+            <Ionicons name="help-circle-outline" size={14} color={colors.text} />
+            <Text style={styles.sectionLabel}>Support</Text>
+          </View>
+          <Text style={styles.supportInfo}>For assistance, please contact Lista support:</Text>
+          <TouchableOpacity onPress={handleEmailPress}>
+            <Text style={styles.supportContact}>{supportContact}</Text>
+          </TouchableOpacity>
+          <Text style={styles.inspirationText}>Keep achieving great things with Lista.</Text>
+          <Text style={styles.inspirationText}>We're here to make your life easier and more organized. </Text>
+        </GlassCard>
+
+        <TouchableOpacity onPress={navigateToEditProfile}>
+          <GlassCard style={styles.card} contentStyle={[styles.cardContent, styles.sectionLabelRow]}>
+            <Ionicons name="pencil-outline" size={14} color={colors.primary} />
+            <Text style={styles.sectionLabel}>Edit Profile</Text>
+          </GlassCard>
+        </TouchableOpacity>
+
+        <GlassCard style={styles.card} contentStyle={styles.cardContent}>
+          <View style={[styles.sectionLabelRow, styles.sectionLabelRowSpaced]}>
+            <Ionicons name="color-palette-outline" size={14} color={colors.text} />
+            <Text style={styles.sectionLabel}>Background</Text>
+          </View>
+          {/* A plain grid of rows of four, not a FlatList: a FlatList with scrolling switched off gets
+              touch-action: none on the web, which stops a finger drag that starts on the grid from
+              scrolling the page on a phone (iPhone Safari and Android Chrome). */}
+          <View style={styles.backgroundGridWrap}>
+            {swatchRows.map((row, rowIndex) => (
+              <View key={rowIndex} style={styles.backgroundGridRow}>
+                {row.map((item, columnIndex) => (
+                  <React.Fragment key={rowIndex * 4 + columnIndex}>{renderSwatch(item)}</React.Fragment>
+                ))}
+              </View>
+            ))}
+          </View>
         </GlassCard>
 
         <View style={styles.footerContainer}>
@@ -381,6 +394,9 @@ const styles = StyleSheet.create({
   },
   backgroundGridWrap: {
     marginTop: 10,
+  },
+  backgroundGridRow: {
+    flexDirection: 'row',
   },
   backgroundImageOption: {
     margin: 4,

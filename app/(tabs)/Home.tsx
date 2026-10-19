@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
@@ -134,17 +134,16 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
               <Text style={styles.emptyTitle}>Write your dreams here!</Text>
             )}
 
-            <FlatList
-              data={listItems}
-              keyExtractor={(item) => item.id.toString()}
-              scrollEnabled={false}
-              contentContainerStyle={styles.listContent}
-              renderItem={({ item }) => {
+            {/* A plain column of cards, not a FlatList: a FlatList with scrolling switched off gets
+                touch-action: none on the web, which stops a finger drag that starts on a card from
+                scrolling the page on a phone (iPhone Safari and Android Chrome). */}
+            <View style={styles.listContent}>
+              {listItems.map((item) => {
                 const { done, total } = countItems(item.items, item.picture_rows);
                 const progress = total > 0 ? done / total : 0;
                 const gradient = progressGradient(done, total);
                 return (
-                  <TouchableOpacity onPress={() => handlePressItem(item)} activeOpacity={0.85}>
+                  <TouchableOpacity key={item.id} onPress={() => handlePressItem(item)} activeOpacity={0.85}>
                     <GlassCard style={styles.listCard} contentStyle={styles.listCardContent}>
                       <View style={styles.listCardHeader}>
                         <Text style={styles.boldText}>{item.title}</Text>
@@ -174,8 +173,8 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
                     </GlassCard>
                   </TouchableOpacity>
                 )
-              }}
-            />
+              })}
+            </View>
           </>
         )}
       </ScrollView>
