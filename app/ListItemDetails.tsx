@@ -1565,7 +1565,7 @@ const styles = StyleSheet.create({
     flex: 2,
     borderWidth: 0,
     paddingLeft: 10,
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: fonts.body,
     color: colors.text,
   },
@@ -2066,6 +2066,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     backgroundColor: colors.inputBg,
     fontFamily: fonts.body,
+    fontSize: 16,
     color: colors.text,
   },
   confirmButtonText: {

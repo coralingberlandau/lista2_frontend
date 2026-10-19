@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 48,
         fontFamily: fonts.body,
-        fontSize: 14,
+        fontSize: 16,
         color: colors.text,
         paddingLeft: 8,
         paddingVertical: 10,
