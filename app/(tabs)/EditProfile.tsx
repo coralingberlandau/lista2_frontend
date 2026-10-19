@@ -7,7 +7,7 @@ import axios from 'axios';
 import Toast from 'react-native-toast-message';
 import { Ionicons } from '@expo/vector-icons';
 import { ScrollView } from 'react-native-gesture-handler';
-import AuroraBackground from '@/components/AuroraBackground';
+import AppBackground from '@/components/AppBackground';
 import GlassCard from '@/components/GlassCard';
 import PrimaryButton from '@/components/PrimaryButton';
 import { colors, fonts, radii } from '@/constants/theme';
@@ -133,7 +133,7 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
 
     return (
         <View style={styles.root}>
-            <AuroraBackground />
+            <AppBackground />
             <ScrollView contentContainerStyle={styles.container}>
                 <Text style={styles.title}>Edit Profile</Text>
                 <View style={styles.titleRule} />
