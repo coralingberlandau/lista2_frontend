@@ -22,7 +22,7 @@ It combines customization options, easy sharing with tailored permissions, AI li
 and a calm, user-friendly experience.
 
 ![Version](https://img.shields.io/badge/version-2.0.0-blue)
-![Backend tests](https://img.shields.io/badge/backend%20tests-44%20passing-brightgreen)  
+![Backend tests](https://img.shields.io/badge/backend%20tests-73%20passing-brightgreen)  
 
 ---
 
@@ -189,7 +189,7 @@ These are on the roadmap (see [Future Upgrades](#future-upgrades)); they are **n
 
 
 1. **Login and Register**  
-   - Registration with username, full name, email address, and a password that meets the strength rules.
+   - Registration with just a username, an email address and a password that meets the strength rules (no first or last name is asked for).
    - Login for existing users with username and password, with a show/hide password toggle.  
    - **Forgot password** and **Change password** screens that work with the emailed reset link.  
 
@@ -357,8 +357,7 @@ The models live in the backend (see the backend README); they are listed here fo
 Utilizes Django’s built-in `User` model:  
 - **User ID**: Unique identifier.  
 - **Username**: Unique within the system, used for login alongside the password
-- **First Name**: User's given name. 
-- **Last Name:**: User's family name 
+- **First and last name**: optional. The app no longer asks for them, so new accounts have them empty; they are kept for existing accounts and for older app versions that still send them.  
 - **Email**: Unique within the system, used for sharing lists and password recovery.  
 - **Password**: Secure authentication credential (stored hashed; must meet the strength rules).  
 
@@ -400,7 +399,7 @@ Allows users to personalize their experience:
 
 ## **Testing and Reliability**  
 
-- **Backend**: **44 automated tests** replay the app's real requests (same URLs, bodies and headers) and cover registration, login and token renewal, 
+- **Backend**: **73 automated tests** replay the app's real requests (same URLs, bodies and headers) and cover registration, login and token renewal, 
   list permissions, sharing, images, backgrounds, profiles, password rules, password reset and log safety. See the backend README.  
 - **Frontend**: the screens and their error cases were checked in a browser, including no internet, an expired session, a refused request, 
   a missing list title, sharing with someone who is not on Lista, and a weak password.  
@@ -427,7 +426,7 @@ Allows users to personalize their experience:
 
 5. **Quality Assurance (QA)**  
    - Manual and automated feature testing.  
-   - The backend has **44 automated tests**; the frontend screens were checked in a browser, including the error cases above.  
+   - The backend has **73 automated tests**; the frontend screens were checked in a browser, including the error cases above.  
 
 6. **Release and Feedback**  
    - Release followed by user feedback for continuous improvement.  
@@ -461,13 +460,12 @@ Protected endpoints need the header `Authorization: Bearer <access token>`.
   ```json
   {
     "username": "user1",
-    "first_name": "John",
-    "last_name": "Doe", 
     "email": "user1@example.com",
     "password": "a-strong-password-42"
   }
   ```
 - **Response (201):** `{ "Success": "New user created", "username": "user1", "user_id": 1, "access": "...", "refresh": "..." }`
+- **Note:** `first_name` and `last_name` are optional; the app no longer sends them.
 
 #### Login  
 - **URL:** `/login/`  
