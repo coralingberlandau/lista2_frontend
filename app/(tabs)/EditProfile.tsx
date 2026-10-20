@@ -19,54 +19,54 @@ type EditProfileProps = {
 
 const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
     const [username, setUsername] = useState<string>('');
-    const [firstName, setFirstName] = useState<string>('');
-    const [lastName, setLastName] = useState<string>('');
     const [email, setEmail] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
     const [emailError, setEmailError] = useState<string | null>(null);
     const navigation = useNavigation();
     const [userId, setUserId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [loadError, setLoadError] = useState<boolean>(false);
     const [saving, setSaving] = useState(false);
     const SERVER = API_URL;
 
 
 
     useEffect(() => {
+        let cancelled = false;
+
         const loadUserData = async () => {
-            const storedUserId = await AsyncStorage.getItem('userId');
-            if (storedUserId) setUserId(storedUserId);
+            try {
+                const storedUserId = await AsyncStorage.getItem('userId');
+                const storedUsername = await AsyncStorage.getItem('userName');
+                if (storedUserId) setUserId(storedUserId);
+                if (storedUsername) setUsername(storedUsername);
 
-            const storedUsername = await AsyncStorage.getItem('userName');
-            if (storedUsername) setUsername(storedUsername);
-
-            if (userId) {
-                try {
+                if (storedUserId) {
                     // The profile is private: the backend only answers a logged-in user
                     // asking for their own profile, so the login token is required.
                     const token = await AsyncStorage.getItem('token');
-                    const response = await axios.get(`${SERVER}/user/${userId}/`, {
+                    const response = await axios.get(`${SERVER}/user/${storedUserId}/`, {
                         headers: { Authorization: `Bearer ${token}` },
                     });
-                    setFirstName(response.data.first_name);
-                    setLastName(response.data.last_name);
-                    setEmail(response.data.email);
-                } catch (error) {
-                    console.error('Error loading user data:', error);
+                    if (!cancelled) setEmail(response.data.email ?? '');
                 }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                if (!cancelled) setLoadError(true);
+            } finally {
+                // Loading ends when the request ends, whatever its result, so the screen can
+                // never wait forever (for example after a network error).
+                if (!cancelled) setIsLoading(false);
             }
         };
 
         loadUserData();
-    }, [userId]);
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
-    const allFieldsFilled = username && firstName && lastName && email;
-
-    useEffect(() => {
-        if (firstName && lastName && email) {
-            setIsLoading(false);
-        }
-    }, [firstName, lastName, email]);
+    const allFieldsFilled = username && email;
 
     const isValidEmail = (email: string): boolean => {
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -92,8 +92,6 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
                 const token = await AsyncStorage.getItem('token');
                 const response = await axios.patch(`${SERVER}/user/${userId}/`, {
                     username,
-                    first_name: firstName,
-                    last_name: lastName,
                     email,
                 }, {
                     headers: { Authorization: `Bearer ${token}` },
@@ -152,28 +150,6 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
                     </View>
 
                     <View style={styles.inputContainer}>
-                        <Ionicons name="person-outline" size={20} color={colors.placeholder} style={styles.icon} />
-                        <Input
-                            value={firstName}
-                            onChangeText={setFirstName}
-                            placeholder="First Name"
-                            placeholderTextColor={colors.placeholder}
-                            style={styles.input}
-                        />
-                    </View>
-
-                    <View style={styles.inputContainer}>
-                        <Ionicons name="person-outline" size={20} color={colors.placeholder} style={styles.icon} />
-                        <Input
-                            value={lastName}
-                            onChangeText={setLastName}
-                            placeholder="Last Name"
-                            placeholderTextColor={colors.placeholder}
-                            style={styles.input}
-                        />
-                    </View>
-
-                    <View style={styles.inputContainer}>
                         <Ionicons name="mail-outline" size={20} color={colors.placeholder} style={styles.icon} />
                         <Input
                             value={email}
@@ -187,6 +163,10 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
                     </View>
                     {isLoading ? (
                         <Text style={styles.loadingText}>Loading user data…</Text>
+                    ) : loadError ? (
+                        <Text style={styles.errorText}>
+                            We couldn't load your profile. Check your internet connection and open this page again.
+                        </Text>
                     ) : (
                         <PrimaryButton title="Save Changes" onPress={handleSaveChanges} loading={saving} />
                     )}

@@ -21,8 +21,6 @@ type RegisterScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Reg
 
 const Register: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> }> = ({ setIsLoggedIn }) => {
   const [username, setUsername] = useState<string>('');
-  const [firstName, setFirstName] = useState<string>('');
-  const [lastName, setLastName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
@@ -35,8 +33,6 @@ const Register: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null
 
   const allFieldsFilled: boolean =
     username.trim() !== '' &&
-    firstName.trim() !== '' &&
-    lastName.trim() !== '' &&
     email.trim() !== '' &&
     password.trim() !== '';
 
@@ -60,13 +56,11 @@ const Register: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null
       return;
     }
 
-    if (username && firstName && lastName && email && password) {
+    if (username && email && password) {
       setLoading(true);
       try {
         const response = await axios.post(`${SERVER}/register/`, {
           username,
-          first_name: firstName,
-          last_name: lastName,
           email,
           password,
         });
@@ -146,28 +140,6 @@ const Register: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null
               onChangeText={setUsername}
               placeholder="Username"
               autoCapitalize="none"
-              placeholderTextColor={colors.placeholder}
-              style={styles.input}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Ionicons name="person-outline" size={20} color={colors.placeholder} style={styles.icon} />
-            <Input
-              value={firstName}
-              onChangeText={setFirstName}
-              placeholder="First Name"
-              placeholderTextColor={colors.placeholder}
-              style={styles.input}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Ionicons name="person-outline" size={20} color={colors.placeholder} style={styles.icon} />
-            <Input
-              value={lastName}
-              onChangeText={setLastName}
-              placeholder="Last Name"
               placeholderTextColor={colors.placeholder}
               style={styles.input}
             />
