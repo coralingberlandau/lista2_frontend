@@ -10,11 +10,13 @@ and nothing in the app should make you wonder what just happened.
 - **One visual language everywhere**: every page and every pop-up uses the same masthead-style title with a thin rule underneath, 
   the same rounded cards and the same gradient buttons.
 - **Your own background**: choose a photo, a gradient or your own picture in Settings, and it applies to every screen.
-- **Gentle loading**: a three-dot *Aurora Dots* animation instead of a blank screen.
+- **Gentle loading**: a page shows only the three-dot *Aurora Dots* animation until everything it needs has arrived, then appears complete. If it cannot load, it says so and offers **Try again**.
 
 ### 🧭 Easy to Understand at a Glance
 - **Home shows progress, not paperwork**: each list is a card with a progress badge (`2/5`) and a colored bar, so you see what is done without opening anything.
-- **Few buttons, clear icons**: AI, Share, Check All and Delete sit in one row above the list; everything else is on the page itself.
+- **Few buttons, clear icons**: AI ideas, Share, Check All and Delete sit together at the top right of a list, directly on the page (no circles behind them); everything else is on the page itself.
+- **A floating bottom bar**: Home and Settings sit in a white pill that floats above the content.
+- **Quiet rows**: a photo or camera tile first, the text, and the checkbox on the right, in one soft card with thin dividers; the drag handle is very faint.
 - **Checked items look checked**: struck through, with no raw symbols.
 
 ### 💬 Clear Feedback After Every Action
@@ -38,7 +40,9 @@ Lista uses a small, consistent design system so every screen feels like one prod
   - `GlassCard` - frosted glass surfaces for cards and boxes.  
   - `PrimaryButton` - gradient button with loading and disabled states.  
   - `AuroraBackground` / `AppBackground` - the soft gradient backdrop and the user's chosen background.  
-  - `AuroraDotsLoader` - the three-dot loading animation.  
+  - `AuroraDotsLoader` - the three-dot loading animation; `PageLoader` and `PageLoadError` show it for a whole page, or a message with Try again.  
+  - `FloatingTabBar` - the floating Home / Settings bar.  
+  - `SwipeRow` - a row that slides left to reveal Delete; `AutoGrowInput` - a text field that wraps and grows.  
   - `ToastConfig` - custom gradient "wash" cards for success and error toasts.  
 - **Masthead style**: a serif title with a short rule underneath, used on every page and every pop-up box.
 

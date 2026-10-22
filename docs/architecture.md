@@ -35,8 +35,9 @@ Lista is split into three parts that each do one job:
 
 ```
 app/                 screens (Login, Register, Home, ListItemDetails, Settings, ...)
-components/          GlassCard, PrimaryButton, AppBackground, AuroraBackground, AuroraDotsLoader, ToastConfig, ...
-constants/           theme.ts (design tokens), config.ts (backend address), backgrounds
+components/          GlassCard, PrimaryButton, AppBackground, AuroraBackground, AuroraDotsLoader, PageLoader,
+                     FloatingTabBar, SwipeRow, AutoGrowInput, ToastConfig, ...
+constants/           theme.ts (design tokens), config.ts (backend address), backgrounds and their thumbnails
 utils/               authSession.ts (session renewal), describeError.ts (error messages),
                      countItems.ts (the item-counting rule), resizeImage.ts (shrinks photos before upload)
 public/              icons, web manifest and the web page template
