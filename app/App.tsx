@@ -28,6 +28,7 @@ import EditProfile from './(tabs)/EditProfile';
 import ChangePassword from './ChangePassword';
 import { colors, fonts } from '@/constants/theme';
 import { setSessionExpiredHandler } from '@/utils/authSession';
+import StartupScreen from '@/components/StartupScreen';
 
 const Tab = createBottomTabNavigator<RootStackParamList>();
 
@@ -54,6 +55,8 @@ const App: React.FC = () => {
     }
   }, []);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  // True once the saved login has been looked up, so a logged-in person never sees the Login page flash by.
+  const [loginChecked, setLoginChecked] = useState(false);
   const [fontsLoaded] = useFonts({
     Fraunces_600SemiBold,
     Fraunces_500Medium_Italic,
@@ -85,6 +88,8 @@ const App: React.FC = () => {
       } catch (error) {
         console.error('Error checking login status:', error);
         setIsLoggedIn(false);
+      } finally {
+        setLoginChecked(true);
       }
     };
 
@@ -100,8 +105,9 @@ const App: React.FC = () => {
     },
   };
 
-  if (!fontsLoaded) {
-    return null;
+  // Until the fonts and the saved login are ready, show the three dots (never a blank screen).
+  if (!fontsLoaded || !loginChecked) {
+    return <StartupScreen />;
   }
 
   return (

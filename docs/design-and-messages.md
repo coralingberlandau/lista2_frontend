@@ -10,7 +10,7 @@ and nothing in the app should make you wonder what just happened.
 - **One visual language everywhere**: every page and every pop-up uses the same masthead-style title with a thin rule underneath, 
   the same rounded cards and the same gradient buttons.
 - **Your own background**: choose a photo, a gradient or your own picture in Settings, and it applies to every screen.
-- **Gentle loading**: a page shows only the three-dot *Aurora Dots* animation until everything it needs has arrived, then appears complete. If it cannot load, it says so and offers **Try again**.
+- **Gentle loading**: a page shows only the three-dot *Aurora Dots* animation until everything it needs has arrived, then appears complete. One shared rule covers every page: the dots appear only when the wait is noticeable (over a quarter of a second), the page, its background photo and its pictures appear together, a page you have already opened comes back at once, and if it cannot load it says so and offers **Try again**. The dots are also what you see the moment the app opens, before the code or the fonts have loaded, instead of a blank screen.
 
 ### 🧭 Easy to Understand at a Glance
 - **Home shows progress, not paperwork**: each list is a card with a progress badge (`2/5`) and a colored bar, so you see what is done without opening anything.
@@ -39,8 +39,9 @@ Lista uses a small, consistent design system so every screen feels like one prod
 - **Components** (`components/`):  
   - `GlassCard` - frosted glass surfaces for cards and boxes.  
   - `PrimaryButton` - gradient button with loading and disabled states.  
-  - `AuroraBackground` / `AppBackground` - the soft gradient backdrop and the user's chosen background.  
+  - `AuroraBackground` / `AppBackground` - the soft gradient backdrop and the user's chosen background (it can tell a screen when its picture has finished loading).  
   - `AuroraDotsLoader` - the three-dot loading animation; `PageLoader` and `PageLoadError` show it for a whole page, or a message with Try again.  
+  - `PageGate` - the one loading rule every page uses (dots, background and pictures ready, then the whole page); `StartupScreen` - the dots shown while the app starts.  
   - `FloatingTabBar` - the floating Home / Settings bar.  
   - `SwipeRow` - a row that slides left to reveal Delete; `AutoGrowInput` - a text field that wraps and grows.  
   - `ToastConfig` - custom gradient "wash" cards for success and error toasts.  

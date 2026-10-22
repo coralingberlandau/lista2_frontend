@@ -36,10 +36,11 @@ Lista is split into three parts that each do one job:
 ```
 app/                 screens (Login, Register, Home, ListItemDetails, Settings, ...)
 components/          GlassCard, PrimaryButton, AppBackground, AuroraBackground, AuroraDotsLoader, PageLoader,
-                     FloatingTabBar, SwipeRow, AutoGrowInput, ToastConfig, ...
+                     PageGate, StartupScreen, FloatingTabBar, SwipeRow, AutoGrowInput, ToastConfig, ...
 constants/           theme.ts (design tokens), config.ts (backend address), backgrounds and their thumbnails
 utils/               authSession.ts (session renewal), describeError.ts (error messages),
-                     countItems.ts (the item-counting rule), resizeImage.ts (shrinks photos before upload)
+                     countItems.ts (the item-counting rule), resizeImage.ts (shrinks photos before upload),
+                     preloadPictures.ts (downloads a page's pictures before it is shown)
 public/              icons, web manifest and the web page template
 netlify/functions/   recommendations.js (AI suggestions with Gemini)
 netlify.toml         Netlify build and redirect settings
