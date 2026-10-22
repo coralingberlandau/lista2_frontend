@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Linking, ImageSourcePropType } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Linking, ImageSourcePropType, useWindowDimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -45,10 +45,22 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
   const navigation = useNavigation<EditProfileScreenNavigationProp>();
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
   const [customUri, setCustomUri] = useState<string | null>(null);
-  // The page appears only when everything it shows is ready (the saved choice and the thumbnails);
-  // until then it shows just the three dots. After the first time it stays ready, because what it
-  // reads is saved on this device and refreshes in a blink.
+  // The page appears only when everything it shows is ready (the saved choice, the 24 thumbnails,
+  // the page background and the Logout icon); until then it shows just the three dots. After the
+  // first time it stays ready, because what it reads is saved on this device and refreshes in a blink.
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [thumbsLoaded, setThumbsLoaded] = useState(0);
+  const [backgroundReady, setBackgroundReady] = useState(false);
   const [ready, setReady] = useState(false);
+  const { width: windowWidth } = useWindowDimensions();
+  // Wide screens (a laptop or desktop window) keep one centered column, with the pictures wrapping
+  // across it; phones keep rows of four, exactly as before.
+  const wide = windowWidth >= 900;
+  // The background being shown, and a newly picked one that is loading out of sight. The old
+  // background stays until the new picture has finished loading, then they swap in one go.
+  const [shownBackground, setShownBackground] = useState<{ id: number | null; uri: string | null } | null>(null);
+  const [pendingBackground, setPendingBackground] = useState<{ id: number; uri: string | null } | null>(null);
+  const [showDots, setShowDots] = useState(false);
   const SERVER = API_URL;
 
 
@@ -95,22 +107,18 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
             AsyncStorage.getItem('customizations'),
             AsyncStorage.getItem(CUSTOM_BACKGROUND_URI_KEY),
           ]);
+          // The Logout icon's font is first used on this page, so wait for it too (otherwise the icon pops in late).
+          await AntDesign.loadFont().catch(() => undefined);
           if (cancelled) return;
           const parsed = value ? parseInt(value, 10) : NaN;
-          setSelectedImage(Number.isFinite(parsed) ? parsed : null);
+          const savedId = Number.isFinite(parsed) ? parsed : null;
+          setSelectedImage(savedId);
           setCustomUri(uri);
-          // Draw the thumbnails before showing the page (but never wait more than a few seconds).
-          const prefetch = Promise.all(
-            backgroundThumbSources.map((source) => {
-              const uriOfThumb = Image.resolveAssetSource(source)?.uri;
-              return uriOfThumb ? Image.prefetch(uriOfThumb).catch(() => false) : Promise.resolve(true);
-            })
-          );
-          await Promise.race([prefetch, new Promise((resolve) => setTimeout(resolve, 4000))]);
+          setShownBackground((current) => current ?? { id: savedId, uri });
         } catch (error) {
           console.error('Error loading settings:', error);
         } finally {
-          if (!cancelled) setReady(true);
+          if (!cancelled) setDataLoaded(true);
         }
       };
       load();
@@ -119,6 +127,35 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
       };
     }, [])
   );
+
+  const photoCount = backgroundThumbSources.length;
+  const markThumbLoaded = useCallback(() => setThumbsLoaded((count) => count + 1), []);
+  const markBackgroundReady = useCallback(() => setBackgroundReady(true), []);
+
+  // The page is revealed only when the saved choice, every thumbnail and the page background have
+  // really finished loading (the screen is drawn invisibly underneath the dots so the pictures can
+  // download). A safety limit of 8 seconds means a very slow connection never waits forever.
+  useEffect(() => {
+    if (ready) return;
+    if (dataLoaded && thumbsLoaded >= photoCount && backgroundReady) setReady(true);
+  }, [ready, dataLoaded, thumbsLoaded, photoCount, backgroundReady]);
+  useEffect(() => {
+    const timer = setTimeout(() => setReady(true), 8000);
+    // The dots appear only when the wait is noticeable (over a quarter of a second), so a page
+    // that is ready almost at once never flashes the dots.
+    const dotsTimer = setTimeout(() => setShowDots(true), 250);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(dotsTimer);
+    };
+  }, []);
+
+  const handlePendingBackgroundReady = useCallback(() => {
+    setPendingBackground((pending) => {
+      if (pending) setShownBackground({ id: pending.id, uri: pending.uri });
+      return null;
+    });
+  }, []);
 
   const debounceSaveToServer = useMemo(
     () =>
@@ -157,8 +194,9 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
     []
   );
 
-  const handleBackgroundChange = async (imageId: number) => {
+  const handleBackgroundChange = async (imageId: number, pickedUri: string | null = null) => {
     setSelectedImage(imageId);
+    setPendingBackground({ id: imageId, uri: pickedUri });
     await AsyncStorage.setItem('customizations', imageId.toString());
     debounceSaveToServer(imageId);
   };
@@ -185,7 +223,7 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
     const uri = result.assets[0].uri;
     setCustomUri(uri);
     await AsyncStorage.setItem(CUSTOM_BACKGROUND_URI_KEY, uri);
-    await handleBackgroundChange(CUSTOM_BACKGROUND_ID);
+    await handleBackgroundChange(CUSTOM_BACKGROUND_ID, uri);
   };
 
   // One background choice in the grid below.
@@ -215,7 +253,13 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
                       selectedImage === item.id && styles.selectedBackgroundImage,
                     ]}
                   >
-                    <Image source={item.url} style={styles.backgroundImage} resizeMode="cover" />
+                    <Image
+                      source={item.url}
+                      style={styles.backgroundImage}
+                      resizeMode="cover"
+                      onLoad={markThumbLoaded}
+                      onError={markThumbLoaded}
+                    />
                   </TouchableOpacity>
                 );
               }
@@ -264,19 +308,96 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
     swatchRows.push(swatches.slice(start, start + 4));
   }
 
-  if (!ready) {
-    return (
-      <View style={styles.root}>
-        <AppBackground />
-        <PageLoader />
+  const supportCard = (
+    <GlassCard style={styles.card} contentStyle={styles.cardContent}>
+      <View style={[styles.sectionLabelRow, styles.sectionLabelRowSpaced]}>
+        <Ionicons name="help-circle-outline" size={14} color={colors.text} />
+        <Text style={styles.sectionLabel}>Support</Text>
       </View>
-    );
-  }
+      <Text style={styles.supportInfo}>For assistance, please contact Lista support:</Text>
+      <TouchableOpacity onPress={handleEmailPress} style={styles.emailPill} accessibilityRole="link">
+        <Ionicons name="mail-outline" size={16} color={colors.primary} />
+        <Text style={styles.supportContact}>{supportContact}</Text>
+      </TouchableOpacity>
+      <View style={styles.supportRule} />
+      {/* Non-breaking spaces keep "more organized," and "with Lista." together, so no word is left alone on a line. */}
+      <Text style={styles.inspirationText}>
+        We're here to make your life easier and more{'\u00A0'}organized, so keep achieving great things with{'\u00A0'}Lista.
+      </Text>
+    </GlassCard>
+  );
+
+  const editProfileCard = (
+    <TouchableOpacity onPress={navigateToEditProfile}>
+      <GlassCard style={styles.card} contentStyle={[styles.cardContent, styles.sectionLabelRow]}>
+        <Ionicons name="pencil-outline" size={14} color={colors.primary} />
+        <Text style={styles.sectionLabel}>Edit Profile</Text>
+      </GlassCard>
+    </TouchableOpacity>
+  );
+
+  const backgroundCard = (
+    <GlassCard style={styles.card} contentStyle={styles.cardContent}>
+      <View style={[styles.sectionLabelRow, styles.sectionLabelRowSpaced]}>
+        <Ionicons name="color-palette-outline" size={14} color={colors.text} />
+        <Text style={styles.sectionLabel}>Background</Text>
+      </View>
+      {/* A plain grid, not a FlatList: a FlatList with scrolling switched off gets
+          touch-action: none on the web, which stops a finger drag that starts on the grid from
+          scrolling the page on a phone (iPhone Safari and Android Chrome). Phones show rows of
+          four, as the grid always looked; wide screens let the swatches wrap across the card. */}
+      {wide ? (
+        <View style={styles.backgroundGridWide}>
+          {swatches.map((item, index) => (
+            <React.Fragment key={index}>{renderSwatch(item)}</React.Fragment>
+          ))}
+        </View>
+      ) : (
+        <View style={styles.backgroundGridWrap}>
+          {swatchRows.map((row, rowIndex) => (
+            <View key={rowIndex} style={styles.backgroundGridRow}>
+              {row.map((item, columnIndex) => (
+                <React.Fragment key={rowIndex * 4 + columnIndex}>{renderSwatch(item)}</React.Fragment>
+              ))}
+            </View>
+          ))}
+        </View>
+      )}
+    </GlassCard>
+  );
 
   return (
     <View style={styles.root}>
-      <AppBackground overrideId={selectedImage} overrideCustomUri={customUri} />
-      <ScrollView contentContainerStyle={styles.container}>
+      {/* While loading, the background and the page are drawn invisibly (so their pictures download)
+          and only the three dots show, centered on the whole page. */}
+      {dataLoaded && shownBackground ? (
+        <View style={[StyleSheet.absoluteFill, !ready && styles.hiddenWhileLoading]} pointerEvents="none">
+          <AppBackground
+            overrideId={shownBackground.id}
+            overrideCustomUri={shownBackground.uri}
+            onReady={markBackgroundReady}
+          />
+        </View>
+      ) : null}
+      {pendingBackground ? (
+        <View style={[StyleSheet.absoluteFill, styles.hiddenWhileLoading]} pointerEvents="none">
+          <AppBackground
+            key={`${pendingBackground.id}:${pendingBackground.uri ?? ''}`}
+            overrideId={pendingBackground.id}
+            overrideCustomUri={pendingBackground.uri}
+            onReady={handlePendingBackgroundReady}
+          />
+        </View>
+      ) : null}
+      {!ready && showDots ? (
+        <View style={[StyleSheet.absoluteFill, styles.loaderLayer]} pointerEvents="none">
+          <PageLoader />
+        </View>
+      ) : null}
+      <ScrollView
+        contentContainerStyle={[styles.container, wide && styles.containerWide]}
+        style={!ready ? styles.hiddenWhileLoading : undefined}
+      >
         <View style={styles.headerContainer}>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
             <AntDesign name="logout" size={17} color={colors.danger} />
@@ -288,44 +409,9 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
           </View>
         </View>
 
-        <GlassCard style={styles.card} contentStyle={styles.cardContent}>
-          <View style={[styles.sectionLabelRow, styles.sectionLabelRowSpaced]}>
-            <Ionicons name="help-circle-outline" size={14} color={colors.text} />
-            <Text style={styles.sectionLabel}>Support</Text>
-          </View>
-          <Text style={styles.supportInfo}>For assistance, please contact Lista support:</Text>
-          <TouchableOpacity onPress={handleEmailPress}>
-            <Text style={styles.supportContact}>{supportContact}</Text>
-          </TouchableOpacity>
-          <Text style={styles.inspirationText}>Keep achieving great things with Lista.</Text>
-          <Text style={styles.inspirationText}>We're here to make your life easier and more organized. </Text>
-        </GlassCard>
-
-        <TouchableOpacity onPress={navigateToEditProfile}>
-          <GlassCard style={styles.card} contentStyle={[styles.cardContent, styles.sectionLabelRow]}>
-            <Ionicons name="pencil-outline" size={14} color={colors.primary} />
-            <Text style={styles.sectionLabel}>Edit Profile</Text>
-          </GlassCard>
-        </TouchableOpacity>
-
-        <GlassCard style={styles.card} contentStyle={styles.cardContent}>
-          <View style={[styles.sectionLabelRow, styles.sectionLabelRowSpaced]}>
-            <Ionicons name="color-palette-outline" size={14} color={colors.text} />
-            <Text style={styles.sectionLabel}>Background</Text>
-          </View>
-          {/* A plain grid of rows of four, not a FlatList: a FlatList with scrolling switched off gets
-              touch-action: none on the web, which stops a finger drag that starts on the grid from
-              scrolling the page on a phone (iPhone Safari and Android Chrome). */}
-          <View style={styles.backgroundGridWrap}>
-            {swatchRows.map((row, rowIndex) => (
-              <View key={rowIndex} style={styles.backgroundGridRow}>
-                {row.map((item, columnIndex) => (
-                  <React.Fragment key={rowIndex * 4 + columnIndex}>{renderSwatch(item)}</React.Fragment>
-                ))}
-              </View>
-            ))}
-          </View>
-        </GlassCard>
+        {supportCard}
+        {editProfileCard}
+        {backgroundCard}
 
         <View style={styles.footerContainer}>
           <Text style={styles.footerText}>
@@ -403,21 +489,39 @@ const styles = StyleSheet.create({
   },
   supportInfo: {
     fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.textMuted,
-    marginBottom: 8,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.text,
+  },
+  emailPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 8,
+    marginTop: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: 'rgba(106,91,214,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(106,91,214,0.18)',
   },
   supportContact: {
     fontFamily: fonts.bodySemiBold,
     fontSize: 14,
     color: colors.primary,
-    marginBottom: 12,
+  },
+  supportRule: {
+    height: 1,
+    backgroundColor: colors.divider,
+    marginTop: 16,
+    marginBottom: 14,
   },
   inspirationText: {
     fontFamily: fonts.displayItalic,
-    fontSize: 13,
+    fontSize: 14,
+    lineHeight: 22,
     color: colors.textMuted,
-    marginTop: 4,
   },
   logoutButton: {
     position: 'absolute',
@@ -431,6 +535,21 @@ const styles = StyleSheet.create({
     borderColor: colors.glassBorder,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  hiddenWhileLoading: {
+    opacity: 0,
+  },
+  loaderLayer: {
+    zIndex: 5,
+  },
+  containerWide: {
+    // A single centered column on wide screens, a little narrower than the page.
+    maxWidth: 720,
+  },
+  backgroundGridWide: {
+    marginTop: 10,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   backgroundGridWrap: {
     marginTop: 10,

@@ -17,14 +17,14 @@
 | 🖼️ | **Pictures on any row** | ⬆️ | Attach a picture and open it. Now with swipe, replace and remove, safe all-or-nothing saving, and photos shrunk before upload |
 | ↕️ | **Drag rows into order** | 🆕 | A faint six-dot handle; the row's picture moves with it. Press Enter to add a row |
 | 👈 | **Swipe a row to delete it, with Undo** | 🆕 | Swipe left and tap Delete; "Item deleted · Undo" brings it back, with its picture, for 5 seconds. On a computer: trackpad swipe or the trash that appears on hover |
-| ⏳ | **A page appears only when it is ready** | 🆕 | Three dots while a page loads, then the complete page; if it cannot load, a clear message and Try again |
+| ⏳ | **A page appears only when it is ready** | 🆕 | Three dots while a page loads, then the complete page at once (Settings shows them only when its wait is noticeable); if it cannot load, a clear message and Try again |
 | 🤝 | **Share with permissions** | ⬆️ | Read-Only or Full Access. Now several people at once, grouped by permission, enforced by the server, with truly view-only lists |
 | 💡 | **AI ideas** | ⬆️ | Suggestions for your list. Now from Google Gemini, with tick-and-add, "New ideas" and friendly error states |
-| 🎨 | **Backgrounds** | ⬆️ | Photos saved per person. Now also gradients and your own picture, on every page after you log in and scaled to any screen |
+| 🎨 | **Backgrounds** | ⬆️ | Photos saved per person. Now also gradients and your own picture, on every page after you log in and scaled to any screen. A newly chosen background replaces the old one only once it has fully loaded |
 | 🚪 | **Opening the app** | ⬆️ | Lista 1 opened on a Welcome page that asked people to wait for the free-tier server to wake up before using the app. Lista 2 opens straight on Login |
 | 👤 | **Sign-up and login** | ⬆️ | Now just a username, an email and a password; the session renews automatically |
 | 🔑 | **Password reset by email** | ⬆️ | Now a single-use link that expires after one hour |
-| ⚙️ | **Edit profile and Settings** | ⬆️ | Username and email only, and your profile is private. The support contact is still in Settings |
+| ⚙️ | **Edit profile and Settings** | ⬆️ | Username and email only, and your profile is private. Settings keeps the support contact (now a tidier card with a tappable email), and on large screens stays in one centered column |
 | 📱 | **Phone, tablet and desktop** | ⬆️ | Adapts to every size, including landscape and iPhone, and can be added to the home screen with its own icon |
 | 💬 | **Messages after every action** | ⬆️ | Short, specific messages that say what happened and what to do next |
 | 🫙 | **Empty-list messages** | 🆕 | A friendly "No items yet" on Home, in the list and in the AI box |
@@ -89,11 +89,17 @@ Lista 2 keeps all of that and improves how it looks, feels and behaves.
 Tap the lightbulb for **five related ideas** for your list. **Tick the ones you like** and add them in one tap, or ask for **New ideas**. See [AI Suggestions](#ai-suggestions).
 
 ### 🎨 Make it yours
-- Choose a **background** from beautiful photos and gradients, or **use your own picture**. It appears on every page after you log in.  
+- Choose a **background** from beautiful photos and gradients, or **use your own picture**. It appears on every page after you log in, and a new choice replaces the old background only once its picture has fully loaded.  
 - Update your profile, and log out with one tap.
 
 <p align="center">
   <img src="screenshots/settings.png" width="240" alt="Choosing a background in Settings">
+</p>
+
+On a large screen, Settings stays in one centered column and the backgrounds wrap across it:
+
+<p align="center">
+  <img src="screenshots/settings-wide.png" width="600" alt="Settings on a large screen">
 </p>
 
 ### 🔒 Safe and always with you
@@ -108,7 +114,7 @@ Tap the lightbulb for **five related ideas** for your list. **Tick the ones you 
 ### Also in Lista 2
 
 - **Device compatibility:** the app ships with a web manifest, a favicon set and an Apple touch icon, so it has its own icon and theme color when added to a home screen.
-- **Screens:** Login and Register (with a show/hide password toggle), Forgot password and Change password (from the emailed link), Home, the list screen with its AI, Share, Check All and Delete icons, and Settings (support contact, Edit Profile and the background gallery).
+- **Screens:** Login and Register (with a show/hide password toggle), Forgot password and Change password (from the emailed link), Home, the list screen with its AI, Share, Check All and Delete icons, and Settings (support contact, Edit Profile and the background gallery, which loads completely before it is shown).
 
 ### Not in Lista 1 or Lista 2 (yet)
 

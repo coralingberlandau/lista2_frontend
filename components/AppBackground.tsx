@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ImageBackground, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,6 +19,8 @@ type AppBackgroundProps = {
   overrideId?: number | null;
   /** Same idea as overrideId, for a freshly picked custom photo's local URI. */
   overrideCustomUri?: string | null;
+  /** Called once the background is ready to be seen (a photo has finished loading). */
+  onReady?: () => void;
 };
 
 const FROSTED_WASH = [
@@ -34,7 +36,7 @@ const FROSTED_WASH = [
  * Settings. Reads the saved choice on every focus so it stays in sync across
  * Home, Settings, and the list screens without a global store.
  */
-export default function AppBackground({ overrideId, overrideCustomUri }: AppBackgroundProps) {
+export default function AppBackground({ overrideId, overrideCustomUri, onReady }: AppBackgroundProps) {
   const [storedId, setStoredId] = useState<number | null>(null);
   const [storedCustomUri, setStoredCustomUri] = useState<string | null>(null);
 
@@ -51,9 +53,17 @@ export default function AppBackground({ overrideId, overrideCustomUri }: AppBack
   const activeId = overrideId ?? storedId;
   const activeCustomUri = overrideCustomUri ?? storedCustomUri;
 
+  // Gradients and the default blobs need no download, so they are ready at once.
+  const isPhoto =
+    (activeId === CUSTOM_BACKGROUND_ID && !!activeCustomUri) ||
+    (!!activeId && !getGradientById(activeId) && activeId >= 1 && activeId <= backgroundImageSources.length);
+  useEffect(() => {
+    if (!isPhoto) onReady?.();
+  }, [isPhoto, onReady]);
+
   if (activeId === CUSTOM_BACKGROUND_ID && activeCustomUri) {
     return (
-      <PhotoBackground source={{ uri: activeCustomUri }} />
+      <PhotoBackground source={{ uri: activeCustomUri }} onReady={onReady} />
     );
   }
 
@@ -80,14 +90,16 @@ export default function AppBackground({ overrideId, overrideCustomUri }: AppBack
     return <AuroraBackground />;
   }
 
-  return <PhotoBackground source={image} />;
+  return <PhotoBackground source={image} onReady={onReady} />;
 }
 
-function PhotoBackground({ source }: { source: any }) {
+function PhotoBackground({ source, onReady }: { source: any; onReady?: () => void }) {
   return (
     <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
       <ImageBackground
         source={source}
+        onLoad={onReady}
+        onError={onReady}
         style={[StyleSheet.absoluteFillObject, styles.stretch]}
         resizeMode="cover"
       >
