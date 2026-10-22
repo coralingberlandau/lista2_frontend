@@ -11,11 +11,13 @@
 | ✍️ | **Create and save lists** | ✅ | A title and as many items as you like, saved to your account |
 | ☑️ | **Tick items off** | ✅ | Mark items as done |
 | ☑️ | **Check All / Uncheck All** | 🆕 | Tick or clear a whole list in one tap, so a list is easy to reuse |
-| 🏠 | **Home with your lists** | ✅ | Your lists, a "Hello, <username>" greeting and a Logout button |
-| 📊 | **Progress on every list** | 🆕 | A badge (`2/7`) and a colored bar on each list card |
-| 🗑️ | **Update and delete lists** | ⬆️ | Deleted lists are only hidden. Now Lista asks first and warns when the list is shared |
+| 🏠 | **Home with your lists** | 🔁 | Your lists and a "Hello, <username>" greeting. Logout now lives in Settings only |
+| 📊 | **Progress on every list** | 🆕 | A badge (`2/7`) and a colored bar on each Home card, and a progress bar at the top of every list |
+| 🗑️ | **Update and delete lists** | ⬆️ | Deleted lists are only hidden. Now Lista asks first and warns when the list is shared. Deleting one item is a swipe, with Undo |
 | 🖼️ | **Pictures on any row** | ⬆️ | Attach a picture and open it. Now with swipe, replace and remove, safe all-or-nothing saving, and photos shrunk before upload |
-| ↕️ | **Drag rows into order** | 🆕 | Six-dot handle; the row's picture moves with it. Press Enter to add a row |
+| ↕️ | **Drag rows into order** | 🆕 | A faint six-dot handle; the row's picture moves with it. Press Enter to add a row |
+| 👈 | **Swipe a row to delete it, with Undo** | 🆕 | Swipe left and tap Delete; "Item deleted · Undo" brings it back, with its picture, for 5 seconds. On a computer: trackpad swipe or the trash that appears on hover |
+| ⏳ | **A page appears only when it is ready** | 🆕 | Three dots while a page loads, then the complete page; if it cannot load, a clear message and Try again |
 | 🤝 | **Share with permissions** | ⬆️ | Read-Only or Full Access. Now several people at once, grouped by permission, enforced by the server, with truly view-only lists |
 | 💡 | **AI ideas** | ⬆️ | Suggestions for your list. Now from Google Gemini, with tick-and-add, "New ideas" and friendly error states |
 | 🎨 | **Backgrounds** | ⬆️ | Photos saved per person. Now also gradients and your own picture, on every page after you log in and scaled to any screen |
@@ -26,7 +28,7 @@
 | 📱 | **Phone, tablet and desktop** | ⬆️ | Adapts to every size, including landscape and iPhone, and can be added to the home screen with its own icon |
 | 💬 | **Messages after every action** | ⬆️ | Short, specific messages that say what happened and what to do next |
 | 🫙 | **Empty-list messages** | 🆕 | A friendly "No items yet" on Home, in the list and in the AI box |
-| ✨ | **Look and feel** | 🆕 | A complete redesign: soft gradients, frosted-glass cards and a gentle loading animation |
+| ✨ | **Look and feel** | 🆕 | A complete redesign: soft gradients, frosted-glass cards, photo-first rows and a floating bottom bar |
 
 ## Lista 1 compared with Lista 2
 
@@ -36,10 +38,15 @@ Lista 2 keeps all of that and improves how it looks, feels and behaves.
 | Area | Lista 1 | Lista 2 |
 |------|---------|---------|
 | **Look and feel** | Simple screens | A complete redesign: soft gradients, frosted-glass cards, elegant typography and a gentle loading animation |
-| **Home** | Each list shows its title and its first items | Cards with a progress badge and bar for every list |
+| **Home** | Each list shows its title and its first items; a Logout button beside the greeting | Cards with a progress badge and bar for every list; Logout only in Settings |
+| **Loading** | A small loader on an empty page, then everything pops in | Only the three dots until the whole page is ready, then the complete page; a clear message and **Try again** if it cannot load |
+| **List rows** | Handle, checkbox and trash on every row, text in one line that could slide sideways | Photo first, text that wraps inside the row, the checkbox on the right, a faint handle, all in one soft card; a progress bar on top |
+| **Deleting one item** | A trash button on every row | **Swipe left** and tap Delete, with an **Undo** message for 5 seconds (no question asked); on a computer, a two-finger swipe or the trash on hover |
+| **Bottom bar** | A full-width white strip | A floating pill with a soft highlight on the current tab |
+| **Text fields** | The browser's blue box when focused | A soft violet frame with a faint halo |
 | **Ticking items** | Tick one by one | Also **Check All / Uncheck All** |
 | **Pictures** | Attach a picture and view it larger | A viewer with swipe, replace and remove; pictures saved together with the list in one safe step; large photos shrunk before upload; a row can hold just a picture |
-| **Arranging rows** | Type in order | **Drag rows** by a handle, or press Enter to add a row |
+| **Arranging rows** | Type in order | **Drag rows** by a faint handle, or press Enter to add a row |
 | **Sharing** | One email at a time | **Several people at once**, grouped by permission, with clear messages for people who are not on Lista yet; Read-Only lists are truly view-only |
 | **Deleting** | Deleted straight away | Asks first, and warns when the list is shared |
 | **Messages** | General notices | Short, specific messages after every action that say what happened and what to do next |
@@ -56,13 +63,15 @@ Lista 2 keeps all of that and improves how it looks, feels and behaves.
 ### ✍️ Create, save and reuse your lists
 - Make a list in seconds: a title and as many items as you like. Everything is saved to your account, so your lists are there on every device.  
 - **Tick items off** as you go, or use **Check All / Uncheck All**. Uncheck everything to reuse a list next week.  
-- **Home shows progress at a glance**: every list is a card with a badge (`2/7`) and a colored bar.  
+- **Progress at a glance**: every list on Home is a card with a badge (`2/7`) and a colored bar, and every list has a progress bar at the top.  
 - **Pictures**: attach a picture to any row. Tap it to open the viewer: swipe between pictures, replace or remove one.  
-- **Organize by dragging**: pick a row up by its six-dot handle and drop it where it belongs; its picture moves with it. Press **Enter** to add a row right below.  
-- **Delete safely**: Lista asks first, and warns when the list is shared. Deleted lists are hidden, never erased.
+- **Organize by dragging**: pick a row up by its faint six-dot handle and drop it where it belongs; its picture moves with it. Press **Enter** to add a row right below. Long text wraps inside its row.  
+- **Delete safely**: deleting a whole list asks first and warns when it is shared (lists are hidden, never erased). Deleting one item is a swipe to the left, followed by **Undo** for 5 seconds; nothing is saved until you press **Update List**.  
 
 <p align="center">
-  <img src="screenshots/edit-list.png" width="240" alt="Editing a list: ticks, pictures and drag handles">
+  <img src="screenshots/edit-list.png" width="240" alt="Editing a list: photos first, checkboxes on the right, progress bar">
+  <img src="screenshots/swipe-delete.png" width="240" alt="Swiping a row to delete it">
+  <img src="screenshots/undo.png" width="240" alt="Item deleted, with Undo">
   <img src="screenshots/image-viewer.png" width="240" alt="The picture viewer">
 </p>
 

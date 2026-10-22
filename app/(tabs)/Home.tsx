@@ -7,10 +7,9 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { ListItem, RootStackParamList } from '../type';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { ScrollView } from 'react-native-gesture-handler';
-import Toast from 'react-native-toast-message';
 import { LinearGradient } from 'expo-linear-gradient';
 import AppBackground from '@/components/AppBackground';
-import AuroraDotsLoader from '@/components/AuroraDotsLoader';
+import { PageLoader, PageLoadError } from '@/components/PageLoader';
 import GlassCard from '@/components/GlassCard';
 import { colors, fonts, radii, shadows, progressGradient } from '@/constants/theme';
 import { API_URL } from '@/constants/config';
@@ -30,6 +29,7 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
   const [listItems, setListItems] = useState<ListItem[]>([]);
   const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const navigation = useNavigation<NavigationProp>();
   const SERVER = API_URL;
 
@@ -41,8 +41,10 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
   );
 
   const fetchData = useCallback(async () => {
-    setListItems([]);
+    // The whole page shows only the three dots until the latest lists have arrived, so nobody
+    // sees a half-drawn page or an old copy.
     setLoading(true);
+    setLoadError(null);
 
     try {
       const [storedUsername, storedUserId, token] = await Promise.all([
@@ -70,14 +72,11 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
       }
     } catch (error) {
       console.error('Error fetching user list items:', error);
-      Toast.show({
-        type: 'error',
-        text1: "Couldn't load your lists",
-        text2:
-          error instanceof Error && error.message === 'No token found'
-            ? 'Your session expired. Please log in again.'
-            : describeError(error),
-      });
+      setLoadError(
+        error instanceof Error && error.message === 'No token found'
+          ? 'Your session expired. Please log in again.'
+          : describeError(error)
+      );
     } finally {
       setLoading(false);
     }
@@ -90,35 +89,26 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
     navigation.navigate('ListItemDetails', { listItem: item });
   };
 
-  const handleLogout = async () => {
-    try {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('refreshToken');
-      setIsLoggedIn(false);
-    } catch (error) {
-      console.error('Error logging out:', error);
-      Toast.show({
-        type: 'error',
-        text1: "Couldn't log you out",
-        text2: 'Please try again.',
-      });
-    }
-  };
+  if (loading || loadError) {
+    return (
+      <View style={styles.root}>
+        <AppBackground />
+        {loading ? (
+          <PageLoader />
+        ) : (
+          <PageLoadError title="Couldn't load your lists" message={loadError ?? undefined} onRetry={fetchData} />
+        )}
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
       <AppBackground />
       <ScrollView contentContainerStyle={styles.container}>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <AuroraDotsLoader />
-          </View>
-        ) : (
+        {(
           <>
             <View style={styles.headerContainer}>
-              <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-                <AntDesign name="logout" size={17} color={colors.danger} />
-              </TouchableOpacity>
               <View style={styles.titleBlock}>
                 <Text style={styles.greeting}>Hello, {username || 'Guest'}</Text>
                 <View style={styles.titleRule} />
@@ -178,11 +168,9 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
           </>
         )}
       </ScrollView>
-      {!loading && (
-        <TouchableOpacity style={[styles.addButton, { right: addButtonRight }]} onPress={handleAddListItem}>
-          <AntDesign name="plus" size={24} color="#fff" />
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity style={[styles.addButton, { right: addButtonRight }]} onPress={handleAddListItem}>
+        <AntDesign name="plus" size={24} color="#fff" />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -294,22 +282,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 17,
     color: colors.text,
-  },
-  loadingContainer: {
-    marginTop: 60,
-  },
-  logoutButton: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.glassBgStrong,
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
 

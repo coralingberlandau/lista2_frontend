@@ -22,7 +22,7 @@
 
 <p align="center">
   <img src="docs/screenshots/home.png" width="190" alt="Home with progress on every list">
-  <img src="docs/screenshots/edit-list.png" width="190" alt="A list with pictures and drag handles">
+  <img src="docs/screenshots/edit-list.png" width="190" alt="A list with photos first, checkboxes on the right and a progress bar">
   <img src="docs/screenshots/ai-ideas.png" width="190" alt="AI ideas you can tick and add">
   <img src="docs/screenshots/share.png" width="190" alt="Sharing with permissions">
 </p>
@@ -42,7 +42,7 @@ A list takes seconds. Come back to it any time, uncheck everything and use it ag
 <td width="33%" valign="top">
 
 ### 🗂️ Organize
-Tick items off, drag rows into order, add pictures, and see progress on Home.
+Tick items off, swipe a row to delete it (with Undo), drag rows into order, add pictures, and watch the progress bar.
 
 </td>
 <td width="33%" valign="top">
@@ -85,11 +85,13 @@ Phone, tablet and desktop. Add it to your home screen.
 | ✍️ | **Create and save lists** | ✅ | A title and as many items as you like, saved to your account |
 | ☑️ | **Tick items off** | ✅ | Mark items as done |
 | ☑️ | **Check All / Uncheck All** | 🆕 | Tick or clear a whole list in one tap, so a list is easy to reuse |
-| 🏠 | **Home with your lists** | ✅ | Your lists, a "Hello, <username>" greeting and a Logout button |
-| 📊 | **Progress on every list** | 🆕 | A badge (`2/7`) and a colored bar on each list card |
-| 🗑️ | **Update and delete lists** | ⬆️ | Deleted lists are only hidden. Now Lista asks first and warns when the list is shared |
+| 🏠 | **Home with your lists** | 🔁 | Your lists and a "Hello, <username>" greeting. Logout now lives in Settings only |
+| 📊 | **Progress on every list** | 🆕 | A badge (`2/7`) and a colored bar on each Home card, and a progress bar at the top of every list |
+| 🗑️ | **Update and delete lists** | ⬆️ | Deleted lists are only hidden. Now Lista asks first and warns when the list is shared. Deleting one item is a swipe, with Undo |
 | 🖼️ | **Pictures on any row** | ⬆️ | Attach a picture and open it. Now with swipe, replace and remove, safe all-or-nothing saving, and photos shrunk before upload |
-| ↕️ | **Drag rows into order** | 🆕 | Six-dot handle; the row's picture moves with it. Press Enter to add a row |
+| ↕️ | **Drag rows into order** | 🆕 | A faint six-dot handle; the row's picture moves with it. Press Enter to add a row |
+| 👈 | **Swipe a row to delete it, with Undo** | 🆕 | Swipe left and tap Delete; "Item deleted · Undo" brings it back, with its picture, for 5 seconds. On a computer: trackpad swipe or the trash that appears on hover |
+| ⏳ | **A page appears only when it is ready** | 🆕 | Three dots while a page loads, then the complete page; if it cannot load, a clear message and Try again |
 | 🤝 | **Share with permissions** | ⬆️ | Read-Only or Full Access. Now several people at once, grouped by permission, enforced by the server, with truly view-only lists |
 | 💡 | **AI ideas** | ⬆️ | Suggestions for your list. Now from Google Gemini, with tick-and-add, "New ideas" and friendly error states |
 | 🎨 | **Backgrounds** | ⬆️ | Photos saved per person. Now also gradients and your own picture, on every page after you log in and scaled to any screen |
@@ -100,7 +102,7 @@ Phone, tablet and desktop. Add it to your home screen.
 | 📱 | **Phone, tablet and desktop** | ⬆️ | Adapts to every size, including landscape and iPhone, and can be added to the home screen with its own icon |
 | 💬 | **Messages after every action** | ⬆️ | Short, specific messages that say what happened and what to do next |
 | 🫙 | **Empty-list messages** | 🆕 | A friendly "No items yet" on Home, in the list and in the AI box |
-| ✨ | **Look and feel** | 🆕 | A complete redesign: soft gradients, frosted-glass cards and a gentle loading animation |
+| ✨ | **Look and feel** | 🆕 | A complete redesign: soft gradients, frosted-glass cards, photo-first rows and a floating bottom bar |
 
 More detail, including everything Lista 1 offered, is in the [feature guide](docs/features.md).
 
@@ -110,8 +112,9 @@ More detail, including everything Lista 1 offered, is in the [feature guide](doc
 
 Lista 1 already offered lists, pictures, sharing, backgrounds, AI ideas and password reset. Lista 2 keeps all of that and:
 
-- gives the whole app a **complete redesign**, with progress on every list
-- adds **drag-to-reorder**, **Check All / Uncheck All** and friendly empty-list messages
+- gives the whole app a **complete redesign**: photo-first rows, a floating bottom bar and progress on every list
+- adds **drag-to-reorder**, **swipe to delete with Undo**, **Check All / Uncheck All** and friendly empty-list messages
+- shows **only the three dots until a page is ready**, then the complete page (and Try again if it cannot load)
 - makes pictures **safer and easier** (viewer, all-or-nothing saving)
 - lets you **share with several people at once** and keeps view-only lists truly view-only
 - moves AI ideas to **Google Gemini** and lets you tick and add them

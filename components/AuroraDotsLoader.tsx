@@ -8,7 +8,7 @@ const DOT_COLORS = [colors.blobViolet, colors.blobCoral, colors.blobTeal] as con
  * Three dots in the Aurora brand colors, bouncing in a staggered loop.
  * Used wherever the app previously showed a plain "Loading…" text.
  */
-export default function AuroraDotsLoader() {
+export default function AuroraDotsLoader({ size = 12 }: { size?: number }) {
   const bounce = useRef(DOT_COLORS.map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
@@ -37,18 +37,19 @@ export default function AuroraDotsLoader() {
   }, [bounce]);
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, { gap: Math.round(size * 0.85) }]}>
       {bounce.map((value, index) => (
         <Animated.View
           key={index}
           style={[
             styles.dot,
+            { width: size, height: size, borderRadius: size / 2 },
             {
               backgroundColor: DOT_COLORS[index],
               opacity: value.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }),
               transform: [
                 {
-                  translateY: value.interpolate({ inputRange: [0, 1], outputRange: [0, -7] }),
+                  translateY: value.interpolate({ inputRange: [0, 1], outputRange: [0, -Math.round(size * 0.6)] }),
                 },
               ],
             },

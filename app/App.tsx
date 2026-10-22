@@ -16,6 +16,7 @@ import {
 import { TabBarIcon } from '@/components/navigation/TabBarIcon';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from '@/components/ToastConfig';
+import FloatingTabBar from '@/components/FloatingTabBar';
 import Home from './(tabs)/Home';
 import Login from './Login';
 import Register from './Register';
@@ -107,26 +108,7 @@ const App: React.FC = () => {
     <NavigationContainer linking={linking} theme={navigationTheme}>
       {isLoggedIn ? (
         <Tab.Navigator
-          screenOptions={{
-            tabBarActiveTintColor: colors.primary,
-            tabBarInactiveTintColor: colors.placeholder,
-            tabBarStyle: {
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(255,255,255,0.75)',
-              borderTopColor: colors.glassBorder,
-              // On a wide window the two tabs stay together in the middle instead of at the far edges.
-              // Pure CSS (no number taken from the window size), so it can never make the page
-              // wider than the screen, whatever the screen size.
-              paddingHorizontal: 'max(0px, calc((100vw - 520px) / 2))' as any,
-            },
-            tabBarLabelStyle: {
-              fontFamily: fonts.bodyMedium,
-              fontSize: 11,
-            },
-          }}
+          tabBar={(props) => <FloatingTabBar {...props} />}
         >
           <Tab.Screen
             name="Home"

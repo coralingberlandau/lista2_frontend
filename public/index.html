@@ -32,6 +32,36 @@
       body {
         overscroll-behavior: none;
       }
+      /* Focus look of the text fields (Login, Register, Edit Profile, ...): no blue browser box; the
+         frame of the field turns violet with a faint halo instead. The focus stays clearly visible. */
+      input[data-lista-field]:focus {
+        outline: none;
+      }
+      div:has(> input[data-lista-field]:focus) {
+        border-color: rgba(106, 91, 214, 0.55) !important;
+        background-color: #ffffff !important;
+        box-shadow: 0 0 0 4px rgba(106, 91, 214, 0.13);
+        transition: box-shadow 0.2s ease, border-color 0.2s ease;
+      }
+      /* List rows: the trash is shown only when a mouse is present (computers) and the pointer is over
+         the row; the drag handle gets a little brighter then. Phones never show these. */
+      [data-lista-hover] {
+        display: none !important;
+      }
+      @media (hover: hover) and (pointer: fine) {
+        [data-lista-hover] {
+          display: flex !important;
+          opacity: 0;
+          transition: opacity 0.15s ease;
+        }
+        [data-lista-row]:hover [data-lista-hover],
+        [data-lista-row]:focus-within [data-lista-hover] {
+          opacity: 1;
+        }
+        [data-lista-row]:hover [data-lista-grip] {
+          opacity: 0.75 !important;
+        }
+      }
       html {
         touch-action: manipulation;
         -webkit-text-size-adjust: 100%;
