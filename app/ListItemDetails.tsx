@@ -12,9 +12,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { ScrollView } from 'react-native-gesture-handler';
 import AppBackground from '@/components/AppBackground';
 import AuroraDotsLoader from '@/components/AuroraDotsLoader';
+import { PageLoader, PageLoadError } from '@/components/PageLoader';
 import GlassCard from '@/components/GlassCard';
 import PrimaryButton from '@/components/PrimaryButton';
-import { colors, fonts, radii, shadows } from '@/constants/theme';
+import SwipeRow from '@/components/SwipeRow';
+import AutoGrowInput from '@/components/AutoGrowInput';
+import { colors, fonts, radii, shadows, progressGradient } from '@/constants/theme';
 import { API_URL } from '@/constants/config';
 import { describeError } from '@/utils/describeError';
 import { shrinkImage } from '@/utils/resizeImage';
@@ -49,6 +52,7 @@ const RowDragHandle: React.FC<{
     <View
       {...responder.panHandlers}
       accessibilityLabel="Drag to reorder"
+      {...({ dataSet: { listaGrip: 'true' } } as any)}
       style={[styles.dragHandle, { cursor: 'grab', touchAction: 'none', userSelect: 'none' } as any]}
     >
       {[0, 1, 2].map((row) => (
@@ -92,6 +96,11 @@ const ListItemDetails: React.FC = () => {
   // Height of every row, to work out which row the dragged one is over.
   const rowHeights = useRef<number[]>([]);
   const rowInputs = useRef<Record<number, TextInput | null>>({});
+  // The row showing its Delete button.
+  const [openSwipeRow, setOpenSwipeRow] = useState<number | null>(null);
+  // The item that was just deleted, so "Undo" can put it back (with its picture) for a few seconds.
+  const [undo, setUndo] = useState<{ row: number; text: string; picture?: ImageData } | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Row that should receive the cursor once the list has been redrawn after an insert.
   const rowToFocus = useRef<number | null>(null);
   // Row currently shown in the picture viewer (null = viewer closed).
@@ -124,7 +133,10 @@ const ListItemDetails: React.FC = () => {
   // Editing an existing list starts view-only; the real permission is confirmed with the server
   // before any editing control is shown. Creating a new list always has full access.
   const [permissionType, setPermissionType] = useState<string>(listItem ? 'read_only' : 'full_access');
-  const [permissionReady, setPermissionReady] = useState<boolean>(!listItem);
+  // An existing list shows only the three dots until its pictures and the person's permission have
+  // both arrived; if either cannot be loaded, the page says so and offers Try again (it never shows
+  // the list without its pictures, which could make a later save drop them).
+  const [pageStatus, setPageStatus] = useState<'loading' | 'ready' | 'error'>(listItem ? 'loading' : 'ready');
   const canEdit = permissionType === 'full_access';
   const [isAIModalVisible, setIsAIModalVisible] = useState(false);
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
@@ -139,25 +151,41 @@ const ListItemDetails: React.FC = () => {
       setTitle(listItem?.title || '');
       setItems(listItem?.items.split("|") || ['']);
       setViewerRow(null)
-      getImages()
-      fetchPermissionType();
+      let cancelled = false;
+      loadPage(() => cancelled);
+      return () => {
+        cancelled = true;
+      };
     }, [listItem])
   );
 
-  const fetchPermissionType = async () => {
+  // Gets everything an existing list needs (pictures and permission) and only then shows the page.
+  const loadPage = async (isCancelled: () => boolean = () => false) => {
+    if (!listItem?.id) {
+      // A list that is being created: nothing to load, the person creating it can edit everything.
+      setPermissionType('full_access');
+      setPageStatus('ready');
+      return;
+    }
+    setPageStatus('loading');
+    const [picturesOk, permissionOk] = await Promise.all([getImages(), fetchPermissionType()]);
+    if (isCancelled()) return;
+    setPageStatus(picturesOk && permissionOk ? 'ready' : 'error');
+  };
+
+  // Returns true when the permission was confirmed with the server.
+  const fetchPermissionType = async (): Promise<boolean> => {
     if (!listItem?.id) {
       // A list that is being created: the person creating it can edit everything.
       setPermissionType('full_access');
-      setPermissionReady(true);
-      return;
+      return true;
     }
     const storedUserId = await AsyncStorage.getItem('userId');
     const token = await AsyncStorage.getItem('token');
     if (!storedUserId) {
       setPermissionType('read_only');
-      setPermissionReady(true);
       setError('Missing user_id');
-      return;
+      return false;
     }
     try {
       setLoading(true);
@@ -174,19 +202,15 @@ const ListItemDetails: React.FC = () => {
       });
 
       setPermissionType(response.data.permission_type);
+      return true;
     } catch (err) {
       console.error('Error fetching permission type:', err);
       setError('Failed to fetch permission type');
-      // Could not confirm what this person may do, so keep the list view-only.
+      // Could not confirm what this person may do, so nothing is editable (and the page offers Try again).
       setPermissionType('read_only');
-      Toast.show({
-        type: 'error',
-        text1: "Couldn't check your access",
-        text2: `${describeError(err)} You can view this list for now.`,
-      });
+      return false;
     } finally {
       setLoading(false);
-      setPermissionReady(true);
     }
   };
 
@@ -310,9 +334,11 @@ const ListItemDetails: React.FC = () => {
 
   const handleItemChange = (text: string, index: number) => {
     if (!canEdit) return;
+    // One item is one line of text that wraps; Enter adds a new row instead of a line break.
+    const oneLine = text.replace(/[\r\n]+/g, ' ');
     const newItems = [...items];
     const wasChecked = newItems[index].startsWith('✔️ ');
-    newItems[index] = wasChecked ? `✔️ ${text}` : text;
+    newItems[index] = wasChecked ? `✔️ ${oneLine}` : oneLine;
     setItems(newItems);
   };
 
@@ -503,6 +529,8 @@ const ListItemDetails: React.FC = () => {
 
   const handleRemoveItem = (index: number) => {
     if (!canEdit) return;
+    const removedText = items[index];
+    const removedPicture = images.find((image) => image.index === index);
     setItems((prev) => prev.filter((_, row) => row !== index));
     // The row's own picture goes with it, and the pictures of the rows below move up with
     // their rows, so every picture stays with the item it belongs to.
@@ -511,7 +539,28 @@ const ListItemDetails: React.FC = () => {
         .filter((image) => image.index !== index)
         .map((image) => (image.index > index ? { ...image, index: image.index - 1 } : image))
     );
+    setOpenSwipeRow(null);
+    // No question is asked: deleting an item only changes the list being edited (nothing is saved
+    // until Update List), so a short "Undo" message is enough.
+    setUndo({ row: index, text: removedText, picture: removedPicture });
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setUndo(null), 5000);
   };
+
+  // Puts the deleted item back in its place, with its picture, and moves the rows below down again.
+  const handleUndoRemove = () => {
+    if (!undo) return;
+    const { row, text, picture } = undo;
+    setItems((prev) => [...prev.slice(0, row), text, ...prev.slice(row)]);
+    setImages((prev) => [
+      ...prev.map((image) => (image.index >= row ? { ...image, index: image.index + 1 } : image)),
+      ...(picture ? [picture] : []),
+    ]);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setUndo(null);
+  };
+
+  useEffect(() => () => { if (undoTimer.current) clearTimeout(undoTimer.current); }, []);
 
   const handleSharePress = () => {
     setSharePeople([]);
@@ -670,7 +719,8 @@ const ListItemDetails: React.FC = () => {
     }
   };
 
-  const getImages = async () => {
+  // Returns true when the pictures were loaded.
+  const getImages = async (): Promise<boolean> => {
     try {
       if (listItem?.id) {
         const response = await axios.get(
@@ -698,15 +748,18 @@ const ListItemDetails: React.FC = () => {
           console.error("Invalid response format:", response.data);
           setImages([]);
           loadedPictures.current = [];
+          return false;
         }
       } else {
         setImages([]);
         loadedPictures.current = [];
       }
+      return true;
     } catch (error) {
       console.error("Error fetching images:", error);
       setImages([]);
       loadedPictures.current = [];
+      return false;
     }
   };
 
@@ -903,6 +956,9 @@ const ListItemDetails: React.FC = () => {
     }
   };
 
+  // How far along the list is (a row counts when it has text or a picture), for the progress bar.
+  const { done: progressDone, total: progressTotal } = countItems(items.join('|'), images.map((image) => image.index));
+
   const closeViewer = () => setViewerRow(null);
   const viewerOpen = viewerRow !== null && viewerRow < items.length;
   const viewerPicture = viewerOpen ? images.find((image) => image.index === viewerRow) : undefined;
@@ -911,14 +967,20 @@ const ListItemDetails: React.FC = () => {
   // A list with no text and no pictures has nothing to show a view-only member.
   const listIsEmpty = countItems(items.join('|'), images.map((image) => image.index)).total === 0;
 
-  // While the permission is being confirmed, show the loading dots (not the editing controls).
-  if (!permissionReady) {
+  // Until everything the list needs has arrived, show only the three dots (never half a page).
+  if (pageStatus !== 'ready') {
     return (
       <View style={{ flex: 1 }}>
         <AppBackground />
-        <View style={styles.permissionLoading}>
-          <AuroraDotsLoader />
-        </View>
+        {pageStatus === 'loading' ? (
+          <PageLoader />
+        ) : (
+          <PageLoadError
+            title="Couldn't load this list"
+            message="Check your internet connection and try again."
+            onRetry={() => loadPage()}
+          />
+        )}
       </View>
     );
   }
@@ -941,6 +1003,17 @@ const ListItemDetails: React.FC = () => {
             )}
             <View style={styles.titleRule} />
           </View>
+
+          {progressTotal > 0 && (
+            <View style={styles.progressTrack} accessibilityLabel={`${progressDone} of ${progressTotal} items done`}>
+              <LinearGradient
+                colors={progressGradient(progressDone, progressTotal)}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.progressFill, { width: `${Math.max((progressDone / progressTotal) * 100, 4)}%` }]}
+              />
+            </View>
+          )}
 
           <GlassCard style={styles.itemsCard} contentStyle={styles.itemsCardContent}>
             {!canEdit && listIsEmpty ? (
@@ -976,10 +1049,20 @@ const ListItemDetails: React.FC = () => {
                     style={dragStyle}
                     onLayout={(event) => { rowHeights.current[index] = event.nativeEvent.layout.height; }}
                   >
-                  <View style={styles.item}>
+                  <SwipeRow
+                    enabled={canEdit}
+                    paused={!!drag}
+                    open={openSwipeRow === index}
+                    onOpenChange={(isOpen) => setOpenSwipeRow(isOpen ? index : null)}
+                    onDelete={() => handleRemoveItem(index)}
+                  >
+                  <View
+                    style={[styles.item, index === items.length - 1 && styles.itemLast]}
+                    {...({ dataSet: { listaRow: 'true' } } as any)}
+                  >
                     {canEdit && (
                       <RowDragHandle
-                        onStart={() => setDrag({ from: index, dy: 0 })}
+                        onStart={() => { setOpenSwipeRow(null); setDrag({ from: index, dy: 0 }); }}
                         onMove={(dy) => setDrag({ from: index, dy })}
                         onEnd={(dy, cancelled) => {
                           if (!cancelled) moveRow(index, dropIndexFor(index, dy, items.length));
@@ -987,69 +1070,92 @@ const ListItemDetails: React.FC = () => {
                         }}
                       />
                     )}
-                    <TouchableOpacity onPress={() => handleToggleItem(index)} disabled={!canEdit} style={{ marginRight: 10 }}>
-                      <FontAwesome
-                        name={isChecked ? "check-square-o" : "square-o"}
-                        size={22}
-                        color={isChecked ? colors.primary : colors.placeholder}
-                      />
-                    </TouchableOpacity>
 
+                    {/* Photo first: the row's picture, or a soft camera tile to add one. */}
                     {filterImage.length > 0 ? (
                       <TouchableOpacity
                         key={filterImage[0].id}
                         onPress={() => setViewerRow(index)}
-                        style={{ marginRight: 10 }}
+                        accessibilityLabel="Open picture"
                       >
                         <Image
                           source={{ uri: filterImage[0].uri }}
-                          style={{ width: 25, height: 25, borderRadius: 6 }}
+                          style={styles.rowPhoto}
                           onError={() => console.error("Failed to load image")}
                         />
                       </TouchableOpacity>
                     ) : canEdit ? (
-                      <TouchableOpacity onPress={() => choosePictureForRow(index)} style={{ marginRight: 10 }}>
-                        <FontAwesome name="image" size={22} color={colors.primaryLight} />
+                      <TouchableOpacity onPress={() => choosePictureForRow(index)} style={styles.rowPhotoEmpty} accessibilityLabel="Add a picture">
+                        <Ionicons name="camera-outline" size={22} color="#A79FCB" />
                       </TouchableOpacity>
                     ) : (
-                      <View style={{ marginRight: 10, opacity: 0.35 }}>
-                        <FontAwesome name="image" size={22} color={colors.primaryLight} />
+                      <View style={[styles.rowPhotoEmpty, { opacity: 0.45 }]}>
+                        <Ionicons name="camera-outline" size={22} color="#A79FCB" />
                       </View>
                     )}
+
                     {canEdit ? (
-                      <TextInput
+                      <AutoGrowInput
                         style={[
                           styles.textArea,
                           {
                             outline: 'none',
                             textDecorationLine: isChecked ? 'line-through' : 'none',
+                            color: isChecked ? colors.placeholder : colors.text,
                           },
                         ]}
                         placeholder="Write here..."
                         placeholderTextColor={colors.placeholder}
-                        multiline={false}
                         value={isChecked ? item.replace('✔️ ', '') : item}
                         onChangeText={(text) => handleItemChange(text, index)}
-                        ref={(input) => { rowInputs.current[index] = input; }}
+                        inputRef={(input) => { rowInputs.current[index] = input; }}
                         blurOnSubmit={false}
-                        onSubmitEditing={() => insertRowAt(index + 1)}
+                        // Enter adds a new row below this one (as before), not a new line in this item.
+                        onKeyPress={(event) => {
+                          const native: any = event.nativeEvent;
+                          if (native.key === 'Enter' && !native.shiftKey) {
+                            (event as any).preventDefault?.();
+                            insertRowAt(index + 1);
+                          }
+                        }}
                       />
                     ) : (
                       <Text
                         style={[
                           styles.textArea,
-                          { textDecorationLine: isChecked ? 'line-through' : 'none' },
+                          styles.textAreaReadOnly,
+                          { textDecorationLine: isChecked ? 'line-through' : 'none', color: isChecked ? colors.placeholder : colors.text },
                         ]}
                       >
                         {isChecked ? item.replace('✔️ ', '') : item}
                       </Text>
                     )}
+
+                    {/* On a computer (a mouse is present) a small trash appears when the pointer is over the row. */}
                     {canEdit && (
-                      <TouchableOpacity onPress={() => handleRemoveItem(index)} style={{ marginLeft: 10 }}>
-                        <Feather name="trash-2" size={20} color={colors.danger} />
+                      <TouchableOpacity
+                        onPress={() => handleRemoveItem(index)}
+                        accessibilityLabel="Delete item"
+                        style={styles.hoverTrash}
+                        {...({ dataSet: { listaHover: 'true' } } as any)}
+                      >
+                        <Feather name="trash-2" size={18} color={colors.danger} />
                       </TouchableOpacity>
                     )}
+
+                    {/* The checkbox is on the right. */}
+                    <TouchableOpacity
+                      onPress={() => handleToggleItem(index)}
+                      disabled={!canEdit}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: isChecked }}
+                      {...({ 'aria-checked': isChecked } as any)}
+                      style={[styles.checkbox, isChecked && styles.checkboxOn]}
+                    >
+                      {isChecked && <Ionicons name="checkmark" size={17} color="#fff" />}
+                    </TouchableOpacity>
                   </View>
+                  </SwipeRow>
                   </View>
                 )
               })}
@@ -1061,9 +1167,9 @@ const ListItemDetails: React.FC = () => {
             {isUpdateMode && canEdit && (
               <TouchableOpacity style={styles.iconContainer} onPress={() => fetchRecommendations()}>
                 <View style={styles.iconCircle}>
-                  <Text style={styles.iconEmoji}>💡</Text>
+                  <Ionicons name="bulb-outline" size={24} color={colors.primary} />
                 </View>
-                <Text style={styles.iconLabel}>AI</Text>
+                <Text style={[styles.iconLabel, { color: colors.primary }]}>AI ideas</Text>
               </TouchableOpacity>
             )}
             {isAIModalVisible && (
@@ -1222,7 +1328,7 @@ const ListItemDetails: React.FC = () => {
             {isUpdateMode && permissionType === 'full_access' && (
               <TouchableOpacity style={styles.iconContainer} onPress={handleSharePress}>
                 <View style={styles.iconCircle}>
-                  <Ionicons name="share-outline" size={18} color={colors.text} />
+                  <Ionicons name="share-outline" size={24} color={colors.text} />
                 </View>
                 <Text style={styles.iconLabel}>Share</Text>
               </TouchableOpacity>
@@ -1361,7 +1467,7 @@ const ListItemDetails: React.FC = () => {
             {isUpdateMode && canEdit && (
               <TouchableOpacity style={styles.iconContainer} onPress={handleToggleAllItems}>
                 <View style={styles.iconCircle}>
-                  <Ionicons name="checkmark-circle-outline" size={19} color={colors.primary} />
+                  <Ionicons name="checkbox-outline" size={24} color={colors.text} />
                 </View>
                 <Text style={styles.iconLabel}>{allItemsChecked ? 'Uncheck All' : 'Check All'}</Text>
               </TouchableOpacity>
@@ -1369,9 +1475,9 @@ const ListItemDetails: React.FC = () => {
             {isUpdateMode && permissionType === 'full_access' && (
               <TouchableOpacity style={styles.iconContainer} onPress={() => setIsDeleteConfirmVisible(true)}>
                 <View style={styles.iconCircle}>
-                  <AntDesign name="delete" size={17} color={colors.danger} />
+                  <Feather name="trash-2" size={23} color={colors.danger} />
                 </View>
-                <Text style={styles.iconLabel}>Delete</Text>
+                <Text style={[styles.iconLabel, { color: colors.danger }]}>Delete</Text>
               </TouchableOpacity>
             )}
             {viewerOpen && (
@@ -1496,7 +1602,8 @@ const ListItemDetails: React.FC = () => {
           </View>
           {permissionType === 'full_access' && (
             <TouchableOpacity style={styles.addItemButton} onPress={AddItemToList}>
-              <Text style={styles.addItemButtonText}>+ Add Item</Text>
+              <Ionicons name="add" size={20} color={colors.primary} />
+              <Text style={styles.addItemButtonText}>Add an item</Text>
             </TouchableOpacity>
           )}
           {permissionType === 'full_access' && (
@@ -1508,6 +1615,16 @@ const ListItemDetails: React.FC = () => {
           )}
         </ScrollView>
       </View>
+      {undo && (
+        <View style={styles.undoToast} pointerEvents="box-none">
+          <View style={styles.undoBar}>
+            <Text style={styles.undoText}>Item deleted</Text>
+            <TouchableOpacity onPress={handleUndoRemove} style={styles.undoButton} accessibilityRole="button" accessibilityLabel="Undo delete">
+              <Text style={styles.undoButtonText}>Undo</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -1555,40 +1672,129 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
+  // One row: [handle] [photo] [text that wraps] [trash on hover] [checkbox], with a thin line under it.
   item: {
     width: '100%',
+    minHeight: 68,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 8,
+    gap: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
   },
+  itemLast: {
+    borderBottomWidth: 0,
+  },
+  rowPhoto: {
+    width: 52,
+    height: 52,
+    borderRadius: 15,
+    backgroundColor: 'rgba(106,91,214,0.10)',
+  },
+  rowPhotoEmpty: {
+    width: 52,
+    height: 52,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(139,106,217,0.12)',
+  },
   textArea: {
-    flex: 2,
+    flex: 1,
+    minWidth: 0,
     borderWidth: 0,
-    paddingLeft: 10,
-    fontSize: 16,
-    fontFamily: fonts.body,
+    padding: 0,
+    fontSize: 16.5,
+    lineHeight: 22,
+    fontFamily: fonts.bodyMedium,
     color: colors.text,
   },
+  textAreaReadOnly: {
+    flexShrink: 1,
+  },
+  hoverTrash: {
+    padding: 4,
+  },
+  checkbox: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#C9C2E0',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxOn: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(106,91,214,0.13)',
+    overflow: 'hidden',
+    marginBottom: 18,
+    marginHorizontal: 4,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  undoToast: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 112,
+    alignItems: 'center',
+    zIndex: 50,
+  },
+  undoBar: {
+    width: '100%',
+    maxWidth: 420,
+    height: 54,
+    borderRadius: 27,
+    paddingLeft: 22,
+    paddingRight: 8,
+    backgroundColor: 'rgba(38,34,59,0.93)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  undoText: {
+    color: '#fff',
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+  },
+  undoButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+  },
+  undoButtonText: {
+    color: '#D8D0FF',
+    fontFamily: fonts.bodyBold,
+    fontSize: 15,
+  },
   addItemButton: {
+    flexDirection: 'row',
+    gap: 8,
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: colors.primaryLight,
-    paddingHorizontal: 10,
-    paddingVertical: 13,
-    borderRadius: radii.md,
+    borderColor: 'rgba(106,91,214,0.45)',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 24,
     alignItems: 'center',
-    alignSelf: 'center',
     marginVertical: 16,
     width: '100%',
   },
   addItemButtonText: {
     color: colors.primary,
     fontFamily: fonts.bodyBold,
-    fontSize: 11,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    fontSize: 15,
   },
   updateButton: {
     marginVertical: 10,
@@ -1614,23 +1820,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 8,
   },
+  // No circle or box behind the buttons: the icons sit directly on the page. A soft light halo keeps
+  // them readable on any background.
   iconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    width: 40,
+    height: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
-    ...shadows.soft,
+    ...({ filter: 'drop-shadow(0 1px 5px rgba(255,255,255,0.7))' } as any),
   },
   iconLabel: {
     fontSize: 11,
-    fontFamily: fonts.bodyMedium,
+    fontFamily: fonts.bodyBold,
     color: colors.text,
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 2,
+    ...({ textShadow: '0 1px 6px rgba(255,255,255,0.75)' } as any),
   },
   iconEmoji: {
     fontSize: 16,
@@ -2076,23 +2281,25 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
+  // The handle is very quiet: six tiny dots at low strength, a little brighter when the mouse is over the row.
   dragHandle: {
-    width: 20,
-    height: 30,
-    marginRight: 6,
+    width: 16,
+    height: 34,
+    marginRight: -4,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,
+    opacity: 0.22,
   },
   dragHandleRow: {
     flexDirection: 'row',
     gap: 3,
   },
   dragHandleDot: {
-    width: 3.5,
-    height: 3.5,
-    borderRadius: 2,
-    backgroundColor: '#B3AEC9',
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: '#6B6380',
   },
   rowLifted: {
     zIndex: 10,
@@ -2109,11 +2316,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
     paddingVertical: 18,
-  },
-  permissionLoading: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   viewerOverlay: {
     position: 'fixed' as any,

@@ -26,6 +26,9 @@ const Input: React.FC<InputProps> = ({
       secureTextEntry={secureTextEntry}
       keyboardType={keyboardType}
       style={[{ flex: 1 }, style]}
+      // Marks the field so the page style (public/index.html) can give its frame the soft violet
+      // focus look instead of the browser's default blue box.
+      {...({ dataSet: { listaField: 'true' } } as any)}
       {...props}
     />
   );

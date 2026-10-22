@@ -10,6 +10,7 @@ import { ScrollView } from 'react-native-gesture-handler';
 import AppBackground from '@/components/AppBackground';
 import GlassCard from '@/components/GlassCard';
 import PrimaryButton from '@/components/PrimaryButton';
+import { PageLoader, PageLoadError } from '@/components/PageLoader';
 import { colors, fonts, radii } from '@/constants/theme';
 import { API_URL } from '@/constants/config';
 
@@ -26,6 +27,8 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
     const [userId, setUserId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [loadError, setLoadError] = useState<boolean>(false);
+    // Bumped by "Try again" to load the profile once more.
+    const [attempt, setAttempt] = useState(0);
     const [saving, setSaving] = useState(false);
     const SERVER = API_URL;
 
@@ -35,6 +38,8 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
         let cancelled = false;
 
         const loadUserData = async () => {
+            setIsLoading(true);
+            setLoadError(false);
             try {
                 const storedUserId = await AsyncStorage.getItem('userId');
                 const storedUsername = await AsyncStorage.getItem('userName');
@@ -64,7 +69,7 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [attempt]);
 
     const allFieldsFilled = username && email;
 
@@ -129,6 +134,24 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
         }
     };
 
+    // Until the profile has arrived (or failed) the page shows only the three dots, never half a form.
+    if (isLoading || loadError) {
+        return (
+            <View style={styles.root}>
+                <AppBackground />
+                {isLoading ? (
+                    <PageLoader />
+                ) : (
+                    <PageLoadError
+                        title="Couldn't load your profile"
+                        message="Check your internet connection and try again."
+                        onRetry={() => setAttempt((count) => count + 1)}
+                    />
+                )}
+            </View>
+        );
+    }
+
     return (
         <View style={styles.root}>
             <AppBackground />
@@ -161,15 +184,7 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
                             style={styles.input}
                         />
                     </View>
-                    {isLoading ? (
-                        <Text style={styles.loadingText}>Loading user data…</Text>
-                    ) : loadError ? (
-                        <Text style={styles.errorText}>
-                            We couldn't load your profile. Check your internet connection and open this page again.
-                        </Text>
-                    ) : (
-                        <PrimaryButton title="Save Changes" onPress={handleSaveChanges} loading={saving} />
-                    )}
+                    <PrimaryButton title="Save Changes" onPress={handleSaveChanges} loading={saving} />
 
                     {(error || emailError) && (
                         <Text style={styles.errorText}>
@@ -243,13 +258,6 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
     },
     icon: {},
-    loadingText: {
-        fontFamily: fonts.body,
-        fontSize: 14,
-        color: colors.textMuted,
-        textAlign: 'center',
-        marginTop: 8,
-    },
 });
 
 export default EditProfile;

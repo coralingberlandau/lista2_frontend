@@ -13,8 +13,10 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import debounce from 'lodash/debounce';
 import AppBackground from '@/components/AppBackground';
+import { PageLoader } from '@/components/PageLoader';
 import GlassCard from '@/components/GlassCard';
 import { backgroundImageSources } from '@/constants/backgroundImages';
+import { backgroundThumbSources } from '@/constants/backgroundThumbs';
 import {
   gradientBackgrounds,
   DEFAULT_BACKGROUND_ID,
@@ -43,6 +45,10 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
   const navigation = useNavigation<EditProfileScreenNavigationProp>();
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
   const [customUri, setCustomUri] = useState<string | null>(null);
+  // The page appears only when everything it shows is ready (the saved choice and the thumbnails);
+  // until then it shows just the three dots. After the first time it stays ready, because what it
+  // reads is saved on this device and refreshes in a blink.
+  const [ready, setReady] = useState(false);
   const SERVER = API_URL;
 
 
@@ -72,7 +78,8 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
   const swatches: Swatch[] = useMemo(
     () => [
       { kind: 'default' },
-      ...backgroundImageSources.map((url, index): Swatch => ({ kind: 'photo', id: index + 1, url })),
+      // Small thumbnail files for the grid (the full-size pictures are used only as the background).
+      ...backgroundImageSources.map((full, index): Swatch => ({ kind: 'photo', id: index + 1, url: backgroundThumbSources[index] ?? full })),
       ...gradientBackgrounds.map((g): Swatch => ({ kind: 'gradient', id: g.id, colors: g.colors })),
       { kind: 'upload' },
     ],
@@ -81,11 +88,35 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
 
   useFocusEffect(
     useCallback(() => {
-      AsyncStorage.getItem('customizations').then((value) => {
-        const parsed = value ? parseInt(value, 10) : NaN;
-        setSelectedImage(Number.isFinite(parsed) ? parsed : null);
-      });
-      AsyncStorage.getItem(CUSTOM_BACKGROUND_URI_KEY).then(setCustomUri);
+      let cancelled = false;
+      const load = async () => {
+        try {
+          const [value, uri] = await Promise.all([
+            AsyncStorage.getItem('customizations'),
+            AsyncStorage.getItem(CUSTOM_BACKGROUND_URI_KEY),
+          ]);
+          if (cancelled) return;
+          const parsed = value ? parseInt(value, 10) : NaN;
+          setSelectedImage(Number.isFinite(parsed) ? parsed : null);
+          setCustomUri(uri);
+          // Draw the thumbnails before showing the page (but never wait more than a few seconds).
+          const prefetch = Promise.all(
+            backgroundThumbSources.map((source) => {
+              const uriOfThumb = Image.resolveAssetSource(source)?.uri;
+              return uriOfThumb ? Image.prefetch(uriOfThumb).catch(() => false) : Promise.resolve(true);
+            })
+          );
+          await Promise.race([prefetch, new Promise((resolve) => setTimeout(resolve, 4000))]);
+        } catch (error) {
+          console.error('Error loading settings:', error);
+        } finally {
+          if (!cancelled) setReady(true);
+        }
+      };
+      load();
+      return () => {
+        cancelled = true;
+      };
     }, [])
   );
 
@@ -231,6 +262,15 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
   const swatchRows: Swatch[][] = [];
   for (let start = 0; start < swatches.length; start += 4) {
     swatchRows.push(swatches.slice(start, start + 4));
+  }
+
+  if (!ready) {
+    return (
+      <View style={styles.root}>
+        <AppBackground />
+        <PageLoader />
+      </View>
+    );
   }
 
   return (
