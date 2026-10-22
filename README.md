@@ -21,10 +21,11 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/home.png" width="190" alt="Home with progress on every list">
-  <img src="docs/screenshots/edit-list.png" width="190" alt="A list with photos first, checkboxes on the right and a progress bar">
-  <img src="docs/screenshots/ai-ideas.png" width="190" alt="AI ideas you can tick and add">
-  <img src="docs/screenshots/share.png" width="190" alt="Sharing with permissions">
+  <img src="docs/screenshots/home.png" width="150" alt="Home with progress on every list">
+  <img src="docs/screenshots/edit-list.png" width="150" alt="A list with photos first, checkboxes on the right and a progress bar">
+  <img src="docs/screenshots/ai-ideas.png" width="150" alt="AI ideas you can tick and add">
+  <img src="docs/screenshots/share.png" width="150" alt="Sharing with permissions">
+  <img src="docs/screenshots/settings-home-size.png" width="150" alt="Settings with the Support card and the background gallery">
 </p>
 
 ---
