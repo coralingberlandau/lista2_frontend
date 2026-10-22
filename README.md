@@ -91,7 +91,7 @@ Phone, tablet and desktop. Add it to your home screen.
 | 🖼️ | **Pictures on any row** | ⬆️ | Attach a picture and open it. Now with swipe, replace and remove, safe all-or-nothing saving, and photos shrunk before upload |
 | ↕️ | **Drag rows into order** | 🆕 | A faint six-dot handle; the row's picture moves with it. Press Enter to add a row |
 | 👈 | **Swipe a row to delete it, with Undo** | 🆕 | Swipe left and tap Delete; "Item deleted · Undo" brings it back, with its picture, for 5 seconds. On a computer: trackpad swipe or the trash that appears on hover |
-| ⏳ | **A page appears only when it is ready** | 🆕 | Three dots while a page loads, then the complete page at once (Settings shows them only when its wait is noticeable); if it cannot load, a clear message and Try again |
+| ⏳ | **A page appears only when it is ready** | 🆕 | Three dots from the very first moment the app opens and on every page while it loads (only if the wait is noticeable), then the complete page at once, pictures included; if it cannot load, a clear message and Try again |
 | 🤝 | **Share with permissions** | ⬆️ | Read-Only or Full Access. Now several people at once, grouped by permission, enforced by the server, with truly view-only lists |
 | 💡 | **AI ideas** | ⬆️ | Suggestions for your list. Now from Google Gemini, with tick-and-add, "New ideas" and friendly error states |
 | 🎨 | **Backgrounds** | ⬆️ | Photos saved per person. Now also gradients and your own picture, on every page after you log in and scaled to any screen. A newly chosen background replaces the old one only once it has fully loaded |

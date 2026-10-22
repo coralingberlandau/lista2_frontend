@@ -39,27 +39,46 @@ const FROSTED_WASH = [
 export default function AppBackground({ overrideId, overrideCustomUri, onReady }: AppBackgroundProps) {
   const [storedId, setStoredId] = useState<number | null>(null);
   const [storedCustomUri, setStoredCustomUri] = useState<string | null>(null);
+  // Until the saved choice has been read, nothing is drawn (instead of the default blobs that would
+  // then be swapped for the real photo).
+  const [choiceRead, setChoiceRead] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
-      AsyncStorage.getItem('customizations').then((value) => {
-        const parsed = value ? parseInt(value, 10) : NaN;
-        setStoredId(Number.isFinite(parsed) ? parsed : null);
-      });
-      AsyncStorage.getItem(CUSTOM_BACKGROUND_URI_KEY).then(setStoredCustomUri);
+      let cancelled = false;
+      Promise.all([
+        AsyncStorage.getItem('customizations'),
+        AsyncStorage.getItem(CUSTOM_BACKGROUND_URI_KEY),
+      ])
+        .then(([value, uri]) => {
+          if (cancelled) return;
+          const parsed = value ? parseInt(value, 10) : NaN;
+          setStoredId(Number.isFinite(parsed) ? parsed : null);
+          setStoredCustomUri(uri);
+          setChoiceRead(true);
+        })
+        .catch(() => {
+          if (!cancelled) setChoiceRead(true);
+        });
+      return () => {
+        cancelled = true;
+      };
     }, [])
   );
 
   const activeId = overrideId ?? storedId;
   const activeCustomUri = overrideCustomUri ?? storedCustomUri;
+  const choiceKnown = choiceRead || overrideId !== undefined;
 
   // Gradients and the default blobs need no download, so they are ready at once.
   const isPhoto =
     (activeId === CUSTOM_BACKGROUND_ID && !!activeCustomUri) ||
     (!!activeId && !getGradientById(activeId) && activeId >= 1 && activeId <= backgroundImageSources.length);
   useEffect(() => {
-    if (!isPhoto) onReady?.();
-  }, [isPhoto, onReady]);
+    if (choiceKnown && !isPhoto) onReady?.();
+  }, [choiceKnown, isPhoto, onReady]);
+
+  if (!choiceKnown) return null;
 
   if (activeId === CUSTOM_BACKGROUND_ID && activeCustomUri) {
     return (

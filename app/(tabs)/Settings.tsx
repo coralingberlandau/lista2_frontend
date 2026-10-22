@@ -13,7 +13,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import debounce from 'lodash/debounce';
 import AppBackground from '@/components/AppBackground';
-import { PageLoader } from '@/components/PageLoader';
+import PageGate from '@/components/PageGate';
 import GlassCard from '@/components/GlassCard';
 import { backgroundImageSources } from '@/constants/backgroundImages';
 import { backgroundThumbSources } from '@/constants/backgroundThumbs';
@@ -45,13 +45,11 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
   const navigation = useNavigation<EditProfileScreenNavigationProp>();
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
   const [customUri, setCustomUri] = useState<string | null>(null);
-  // The page appears only when everything it shows is ready (the saved choice, the 24 thumbnails,
-  // the page background and the Logout icon); until then it shows just the three dots. After the
-  // first time it stays ready, because what it reads is saved on this device and refreshes in a blink.
+  // PageGate shows the page only when everything it needs is ready (the saved choice, the 24
+  // thumbnails, the page background and the Logout icon); until then it shows just the three dots.
+  // After the first time it stays ready, because what it reads is saved on this device.
   const [dataLoaded, setDataLoaded] = useState(false);
   const [thumbsLoaded, setThumbsLoaded] = useState(0);
-  const [backgroundReady, setBackgroundReady] = useState(false);
-  const [ready, setReady] = useState(false);
   const { width: windowWidth } = useWindowDimensions();
   // Wide screens (a laptop or desktop window) keep one centered column, with the pictures wrapping
   // across it; phones keep rows of four, exactly as before.
@@ -60,7 +58,6 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
   // background stays until the new picture has finished loading, then they swap in one go.
   const [shownBackground, setShownBackground] = useState<{ id: number | null; uri: string | null } | null>(null);
   const [pendingBackground, setPendingBackground] = useState<{ id: number; uri: string | null } | null>(null);
-  const [showDots, setShowDots] = useState(false);
   const SERVER = API_URL;
 
 
@@ -118,7 +115,11 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
         } catch (error) {
           console.error('Error loading settings:', error);
         } finally {
-          if (!cancelled) setDataLoaded(true);
+          if (!cancelled) {
+            // Whatever happened, the page can go on with the default background.
+            setShownBackground((current) => current ?? { id: null, uri: null });
+            setDataLoaded(true);
+          }
         }
       };
       load();
@@ -130,25 +131,7 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
 
   const photoCount = backgroundThumbSources.length;
   const markThumbLoaded = useCallback(() => setThumbsLoaded((count) => count + 1), []);
-  const markBackgroundReady = useCallback(() => setBackgroundReady(true), []);
-
-  // The page is revealed only when the saved choice, every thumbnail and the page background have
-  // really finished loading (the screen is drawn invisibly underneath the dots so the pictures can
-  // download). A safety limit of 8 seconds means a very slow connection never waits forever.
-  useEffect(() => {
-    if (ready) return;
-    if (dataLoaded && thumbsLoaded >= photoCount && backgroundReady) setReady(true);
-  }, [ready, dataLoaded, thumbsLoaded, photoCount, backgroundReady]);
-  useEffect(() => {
-    const timer = setTimeout(() => setReady(true), 8000);
-    // The dots appear only when the wait is noticeable (over a quarter of a second), so a page
-    // that is ready almost at once never flashes the dots.
-    const dotsTimer = setTimeout(() => setShowDots(true), 250);
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(dotsTimer);
-    };
-  }, []);
+  const picturesReady = dataLoaded && thumbsLoaded >= photoCount;
 
   const handlePendingBackgroundReady = useCallback(() => {
     setPendingBackground((pending) => {
@@ -367,18 +350,13 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
   );
 
   return (
-    <View style={styles.root}>
-      {/* While loading, the background and the page are drawn invisibly (so their pictures download)
-          and only the three dots show, centered on the whole page. */}
-      {dataLoaded && shownBackground ? (
-        <View style={[StyleSheet.absoluteFill, !ready && styles.hiddenWhileLoading]} pointerEvents="none">
-          <AppBackground
-            overrideId={shownBackground.id}
-            overrideCustomUri={shownBackground.uri}
-            onReady={markBackgroundReady}
-          />
-        </View>
-      ) : null}
+    <PageGate
+      preloadContent
+      holdBackground={!shownBackground}
+      backgroundOverride={shownBackground}
+      ready={picturesReady}
+    >
+      {/* A newly picked background loads out of sight here and replaces the old one only when it is complete. */}
       {pendingBackground ? (
         <View style={[StyleSheet.absoluteFill, styles.hiddenWhileLoading]} pointerEvents="none">
           <AppBackground
@@ -389,15 +367,7 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
           />
         </View>
       ) : null}
-      {!ready && showDots ? (
-        <View style={[StyleSheet.absoluteFill, styles.loaderLayer]} pointerEvents="none">
-          <PageLoader />
-        </View>
-      ) : null}
-      <ScrollView
-        contentContainerStyle={[styles.container, wide && styles.containerWide]}
-        style={!ready ? styles.hiddenWhileLoading : undefined}
-      >
+      <ScrollView contentContainerStyle={[styles.container, wide && styles.containerWide]}>
         <View style={styles.headerContainer}>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
             <AntDesign name="logout" size={17} color={colors.danger} />
@@ -419,15 +389,11 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
           </Text>
         </View>
       </ScrollView>
-    </View>
+    </PageGate>
   );
 };
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   container: {
     flexGrow: 1,
     // A centered column on wide screens instead of stretching across the whole window.
@@ -538,9 +504,6 @@ const styles = StyleSheet.create({
   },
   hiddenWhileLoading: {
     opacity: 0,
-  },
-  loaderLayer: {
-    zIndex: 5,
   },
   containerWide: {
     // A single centered column on wide screens, a little narrower than the page.

@@ -10,9 +10,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { ScrollView } from 'react-native-gesture-handler';
-import AppBackground from '@/components/AppBackground';
 import AuroraDotsLoader from '@/components/AuroraDotsLoader';
-import { PageLoader, PageLoadError } from '@/components/PageLoader';
+import PageGate from '@/components/PageGate';
+import { preloadPictures } from '@/utils/preloadPictures';
 import GlassCard from '@/components/GlassCard';
 import PrimaryButton from '@/components/PrimaryButton';
 import SwipeRow from '@/components/SwipeRow';
@@ -742,6 +742,8 @@ const ListItemDetails: React.FC = () => {
               index: image.index,
             };
           });
+          // The pictures are downloaded before the page is shown, so rows never fill in one by one.
+          await preloadPictures(formattedImages.map((image: ImageData) => image.uri));
           setImages(formattedImages);
           loadedPictures.current = formattedImages.map((image: ImageData) => ({ id: image.id as number, index: image.index }));
         } else {
@@ -967,27 +969,16 @@ const ListItemDetails: React.FC = () => {
   // A list with no text and no pictures has nothing to show a view-only member.
   const listIsEmpty = countItems(items.join('|'), images.map((image) => image.index)).total === 0;
 
-  // Until everything the list needs has arrived, show only the three dots (never half a page).
-  if (pageStatus !== 'ready') {
-    return (
-      <View style={{ flex: 1 }}>
-        <AppBackground />
-        {pageStatus === 'loading' ? (
-          <PageLoader />
-        ) : (
-          <PageLoadError
-            title="Couldn't load this list"
-            message="Check your internet connection and try again."
-            onRetry={() => loadPage()}
-          />
-        )}
-      </View>
-    );
-  }
-
+  // PageGate shows only the three dots until everything the list needs has arrived (never half a page).
   return (
-    <View style={{ flex: 1 }}>
-      <AppBackground />
+    <PageGate
+      loading={pageStatus === 'loading'}
+      error={pageStatus === 'error' ? {
+        title: "Couldn't load this list",
+        message: 'Check your internet connection and try again.',
+        onRetry: () => loadPage(),
+      } : null}
+    >
       <View style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={[styles.container, isNarrow && styles.containerNarrow]}>
           <View style={styles.titleBlock}>
@@ -1625,7 +1616,7 @@ const ListItemDetails: React.FC = () => {
           </View>
         </View>
       )}
-    </View>
+    </PageGate>
   );
 };
 

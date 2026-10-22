@@ -8,8 +8,7 @@ import { ListItem, RootStackParamList } from '../type';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
-import AppBackground from '@/components/AppBackground';
-import { PageLoader, PageLoadError } from '@/components/PageLoader';
+import PageGate from '@/components/PageGate';
 import GlassCard from '@/components/GlassCard';
 import { colors, fonts, radii, shadows, progressGradient } from '@/constants/theme';
 import { API_URL } from '@/constants/config';
@@ -89,22 +88,11 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
     navigation.navigate('ListItemDetails', { listItem: item });
   };
 
-  if (loading || loadError) {
-    return (
-      <View style={styles.root}>
-        <AppBackground />
-        {loading ? (
-          <PageLoader />
-        ) : (
-          <PageLoadError title="Couldn't load your lists" message={loadError ?? undefined} onRetry={fetchData} />
-        )}
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.root}>
-      <AppBackground />
+    <PageGate
+      loading={loading}
+      error={loadError ? { title: "Couldn't load your lists", message: loadError, onRetry: fetchData } : null}
+    >
       <ScrollView contentContainerStyle={styles.container}>
         {(
           <>
@@ -171,15 +159,11 @@ const Home: React.FC<HomeProps> = ({ setIsLoggedIn }) => {
       <TouchableOpacity style={[styles.addButton, { right: addButtonRight }]} onPress={handleAddListItem}>
         <AntDesign name="plus" size={24} color="#fff" />
       </TouchableOpacity>
-    </View>
+    </PageGate>
   );
 };
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   container: {
     flexGrow: 1,
     // A centered column on wide screens instead of stretching across the whole window.

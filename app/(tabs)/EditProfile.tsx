@@ -7,10 +7,9 @@ import axios from 'axios';
 import Toast from 'react-native-toast-message';
 import { Ionicons } from '@expo/vector-icons';
 import { ScrollView } from 'react-native-gesture-handler';
-import AppBackground from '@/components/AppBackground';
 import GlassCard from '@/components/GlassCard';
 import PrimaryButton from '@/components/PrimaryButton';
-import { PageLoader, PageLoadError } from '@/components/PageLoader';
+import PageGate from '@/components/PageGate';
 import { colors, fonts, radii } from '@/constants/theme';
 import { API_URL } from '@/constants/config';
 
@@ -134,27 +133,16 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
         }
     };
 
-    // Until the profile has arrived (or failed) the page shows only the three dots, never half a form.
-    if (isLoading || loadError) {
-        return (
-            <View style={styles.root}>
-                <AppBackground />
-                {isLoading ? (
-                    <PageLoader />
-                ) : (
-                    <PageLoadError
-                        title="Couldn't load your profile"
-                        message="Check your internet connection and try again."
-                        onRetry={() => setAttempt((count) => count + 1)}
-                    />
-                )}
-            </View>
-        );
-    }
-
+    // PageGate shows only the three dots until the profile has arrived (or says it could not load).
     return (
-        <View style={styles.root}>
-            <AppBackground />
+        <PageGate
+            loading={isLoading}
+            error={loadError ? {
+                title: "Couldn't load your profile",
+                message: 'Check your internet connection and try again.',
+                onRetry: () => setAttempt((count) => count + 1),
+            } : null}
+        >
             <ScrollView contentContainerStyle={styles.container}>
                 <Text style={styles.title}>Edit Profile</Text>
                 <View style={styles.titleRule} />
@@ -193,15 +181,11 @@ const EditProfile: React.FC<EditProfileProps> = ({ setIsLoggedIn }) => {
                     )}
                 </GlassCard>
             </ScrollView>
-        </View>
+        </PageGate>
     );
 };
 
 const styles = StyleSheet.create({
-    root: {
-        flex: 1,
-        backgroundColor: colors.background,
-    },
     container: {
         flexGrow: 1,
         alignItems: 'center',

@@ -17,7 +17,7 @@
 | 🖼️ | **Pictures on any row** | ⬆️ | Attach a picture and open it. Now with swipe, replace and remove, safe all-or-nothing saving, and photos shrunk before upload |
 | ↕️ | **Drag rows into order** | 🆕 | A faint six-dot handle; the row's picture moves with it. Press Enter to add a row |
 | 👈 | **Swipe a row to delete it, with Undo** | 🆕 | Swipe left and tap Delete; "Item deleted · Undo" brings it back, with its picture, for 5 seconds. On a computer: trackpad swipe or the trash that appears on hover |
-| ⏳ | **A page appears only when it is ready** | 🆕 | Three dots while a page loads, then the complete page at once (Settings shows them only when its wait is noticeable); if it cannot load, a clear message and Try again |
+| ⏳ | **A page appears only when it is ready** | 🆕 | Three dots from the very first moment the app opens and on every page while it loads (only if the wait is noticeable), then the complete page at once, pictures included; if it cannot load, a clear message and Try again |
 | 🤝 | **Share with permissions** | ⬆️ | Read-Only or Full Access. Now several people at once, grouped by permission, enforced by the server, with truly view-only lists |
 | 💡 | **AI ideas** | ⬆️ | Suggestions for your list. Now from Google Gemini, with tick-and-add, "New ideas" and friendly error states |
 | 🎨 | **Backgrounds** | ⬆️ | Photos saved per person. Now also gradients and your own picture, on every page after you log in and scaled to any screen. A newly chosen background replaces the old one only once it has fully loaded |
@@ -39,7 +39,7 @@ Lista 2 keeps all of that and improves how it looks, feels and behaves.
 |------|---------|---------|
 | **Look and feel** | Simple screens | A complete redesign: soft gradients, frosted-glass cards, elegant typography and a gentle loading animation |
 | **Home** | Each list shows its title and its first items; a Logout button beside the greeting | Cards with a progress badge and bar for every list; Logout only in Settings |
-| **Loading** | A small loader on an empty page, then everything pops in | Only the three dots until the whole page is ready, then the complete page; a clear message and **Try again** if it cannot load |
+| **Loading** | A small loader on an empty page, then everything pops in | Only the three dots, from the moment the app opens, until the whole page and its pictures are ready, then the complete page; a clear message and **Try again** if it cannot load |
 | **List rows** | Handle, checkbox and trash on every row, text in one line that could slide sideways | Photo first, text that wraps inside the row, the checkbox on the right, a faint handle, all in one soft card; a progress bar on top |
 | **Deleting one item** | A trash button on every row | **Swipe left** and tap Delete, with an **Undo** message for 5 seconds (no question asked); on a computer, a two-finger swipe or the trash on hover |
 | **Bottom bar** | A full-width white strip | A floating pill with a soft highlight on the current tab |
