@@ -66,7 +66,7 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
   };
 
   const handleEmailPress = () => {
-    Linking.openURL(`mailto:${supportContact.split(': ')[1]}`);
+    Linking.openURL(`mailto:${supportContact}`);
   };
 
   const handleLogout = async () => {
