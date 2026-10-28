@@ -12,7 +12,6 @@ import { ScrollView } from 'react-native-gesture-handler';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import debounce from 'lodash/debounce';
-import AppBackground from '@/components/AppBackground';
 import PageGate from '@/components/PageGate';
 import GlassCard from '@/components/GlassCard';
 import { backgroundImageSources } from '@/constants/backgroundImages';
@@ -26,6 +25,7 @@ import {
 import { colors, fonts, radii } from '@/constants/theme';
 import { API_URL } from '@/constants/config';
 import { describeError } from '@/utils/describeError';
+import { publishBackgroundChoice } from '@/utils/backgroundChoice';
 
 type Swatch =
   | { kind: 'default' }
@@ -54,10 +54,6 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
   // Wide screens (a laptop or desktop window) keep one centered column, with the pictures wrapping
   // across it; phones keep rows of four, exactly as before.
   const wide = windowWidth >= 900;
-  // The background being shown, and a newly picked one that is loading out of sight. The old
-  // background stays until the new picture has finished loading, then they swap in one go.
-  const [shownBackground, setShownBackground] = useState<{ id: number | null; uri: string | null } | null>(null);
-  const [pendingBackground, setPendingBackground] = useState<{ id: number; uri: string | null } | null>(null);
   const SERVER = API_URL;
 
 
@@ -111,15 +107,10 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
           const savedId = Number.isFinite(parsed) ? parsed : null;
           setSelectedImage(savedId);
           setCustomUri(uri);
-          setShownBackground((current) => current ?? { id: savedId, uri });
         } catch (error) {
           console.error('Error loading settings:', error);
         } finally {
-          if (!cancelled) {
-            // Whatever happened, the page can go on with the default background.
-            setShownBackground((current) => current ?? { id: null, uri: null });
-            setDataLoaded(true);
-          }
+          if (!cancelled) setDataLoaded(true);
         }
       };
       load();
@@ -132,13 +123,6 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
   const photoCount = backgroundThumbSources.length;
   const markThumbLoaded = useCallback(() => setThumbsLoaded((count) => count + 1), []);
   const picturesReady = dataLoaded && thumbsLoaded >= photoCount;
-
-  const handlePendingBackgroundReady = useCallback(() => {
-    setPendingBackground((pending) => {
-      if (pending) setShownBackground({ id: pending.id, uri: pending.uri });
-      return null;
-    });
-  }, []);
 
   const debounceSaveToServer = useMemo(
     () =>
@@ -179,7 +163,9 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
 
   const handleBackgroundChange = async (imageId: number, pickedUri: string | null = null) => {
     setSelectedImage(imageId);
-    setPendingBackground({ id: imageId, uri: pickedUri });
+    // Every screen hears about it now: each keeps its old background until the new picture has
+    // loaded, then switches, so no screen shows a blank or half-painted background.
+    publishBackgroundChoice({ id: imageId, uri: pickedUri ?? customUri });
     await AsyncStorage.setItem('customizations', imageId.toString());
     debounceSaveToServer(imageId);
   };
@@ -350,23 +336,7 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
   );
 
   return (
-    <PageGate
-      preloadContent
-      holdBackground={!shownBackground}
-      backgroundOverride={shownBackground}
-      ready={picturesReady}
-    >
-      {/* A newly picked background loads out of sight here and replaces the old one only when it is complete. */}
-      {pendingBackground ? (
-        <View style={[StyleSheet.absoluteFill, styles.hiddenWhileLoading]} pointerEvents="none">
-          <AppBackground
-            key={`${pendingBackground.id}:${pendingBackground.uri ?? ''}`}
-            overrideId={pendingBackground.id}
-            overrideCustomUri={pendingBackground.uri}
-            onReady={handlePendingBackgroundReady}
-          />
-        </View>
-      ) : null}
+    <PageGate preloadContent ready={picturesReady}>
       <ScrollView contentContainerStyle={[styles.container, wide && styles.containerWide]}>
         <View style={styles.headerContainer}>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
@@ -501,9 +471,6 @@ const styles = StyleSheet.create({
     borderColor: colors.glassBorder,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  hiddenWhileLoading: {
-    opacity: 0,
   },
   containerWide: {
     // A single centered column on wide screens, a little narrower than the page.

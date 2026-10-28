@@ -13,10 +13,6 @@ type PageGateProps = {
   ready?: boolean;
   /** Draw the page invisibly while it waits, so its own pictures can download. */
   preloadContent?: boolean;
-  /** Do not draw the background yet (the page is still reading which one to use). */
-  holdBackground?: boolean;
-  /** A background the page decides itself, instead of the saved choice. */
-  backgroundOverride?: { id: number | null; uri: string | null } | null;
   /** The longest a picture may hold the page up before the page is shown anyway. */
   maxPictureWaitMs?: number;
   children: React.ReactNode;
@@ -38,8 +34,6 @@ export default function PageGate({
   error = null,
   ready = true,
   preloadContent = false,
-  holdBackground = false,
-  backgroundOverride,
   maxPictureWaitMs = 8000,
   children,
 }: PageGateProps) {
@@ -76,15 +70,9 @@ export default function PageGate({
 
   return (
     <View style={styles.root}>
-      {holdBackground ? null : (
-        <View style={[StyleSheet.absoluteFill, !backgroundVisible && styles.hidden]} pointerEvents="none">
-          <AppBackground
-            overrideId={backgroundOverride ? backgroundOverride.id : undefined}
-            overrideCustomUri={backgroundOverride ? backgroundOverride.uri : undefined}
-            onReady={markBackgroundReady}
-          />
-        </View>
-      )}
+      <View style={[StyleSheet.absoluteFill, !backgroundVisible && styles.hidden]} pointerEvents="none">
+        <AppBackground onReady={markBackgroundReady} />
+      </View>
       {waiting && showDots ? (
         <View style={[StyleSheet.absoluteFill, styles.above]} pointerEvents="none">
           <PageLoader />

@@ -20,7 +20,7 @@
 | ⏳ | **A page appears only when it is ready** | 🆕 | Three dots from the very first moment the app opens and on every page while it loads (only if the wait is noticeable), then the complete page at once, pictures included; if it cannot load, a clear message and Try again |
 | 🤝 | **Share with permissions** | ⬆️ | Read-Only or Full Access. Now several people at once, grouped by permission, enforced by the server, with truly view-only lists |
 | 💡 | **AI ideas** | ⬆️ | Suggestions for your list. Now from Google Gemini, with tick-and-add, "New ideas" and friendly error states |
-| 🎨 | **Backgrounds** | ⬆️ | Photos saved per person. Now also gradients and your own picture, on every page after you log in and scaled to any screen. A newly chosen background replaces the old one only once it has fully loaded |
+| 🎨 | **Backgrounds** | ⬆️ | Photos saved per person. Now also gradients and your own picture, on every page after you log in and scaled to any screen. A newly chosen background reaches every screen at the same moment and replaces the old one only once it has fully loaded |
 | 🚪 | **Opening the app** | ⬆️ | Lista 1 opened on a Welcome page that asked people to wait for the free-tier server to wake up before using the app. Lista 2 opens straight on Login |
 | 👤 | **Sign-up and login** | ⬆️ | Sign up with just a username, an email and a password, and log in with either your username or your email address; the session renews automatically |
 | 🔑 | **Password reset by email** | ⬆️ | Now a single-use link that expires after one hour |
@@ -89,7 +89,7 @@ Lista 2 keeps all of that and improves how it looks, feels and behaves.
 Tap the lightbulb for **five related ideas** for your list. **Tick the ones you like** and add them in one tap, or ask for **New ideas**. See [AI Suggestions](#ai-suggestions).
 
 ### 🎨 Make it yours
-- Choose a **background** from beautiful photos and gradients, or **use your own picture**. It appears on every page after you log in, and a new choice replaces the old background only once its picture has fully loaded.  
+- Choose a **background** from beautiful photos and gradients, or **use your own picture**. It appears on every page after you log in. A new choice is handed to every screen at once, and each keeps its old background until the new picture is complete, then switches, so you never see a blank or half-painted background.  
 - Update your profile, and log out with one tap.
 
 <p align="center">
