@@ -20,11 +20,11 @@
 | ⏳ | **A page appears only when it is ready** | 🆕 | Three dots from the very first moment the app opens and on every page while it loads (only if the wait is noticeable), then the complete page at once, pictures included; if it cannot load, a clear message and Try again |
 | 🤝 | **Share with permissions** | ⬆️ | Read-Only or Full Access. Now several people at once, grouped by permission, enforced by the server, with truly view-only lists |
 | 💡 | **AI ideas** | ⬆️ | Suggestions for your list. Now from Google Gemini, with tick-and-add, "New ideas" and friendly error states |
-| 🎨 | **Backgrounds** | ⬆️ | Photos saved per person. Now also gradients and your own picture, on every page after you log in and scaled to any screen. A newly chosen background replaces the old one only once it has fully loaded |
+| 🎨 | **Backgrounds** | ⬆️ | Photos saved per person. Now also gradients and your own picture, on every page after you log in and scaled to any screen. A newly chosen background reaches every screen at the same moment and replaces the old one only once it has fully loaded |
 | 🚪 | **Opening the app** | ⬆️ | Lista 1 opened on a Welcome page that asked people to wait for the free-tier server to wake up before using the app. Lista 2 opens straight on Login |
-| 👤 | **Sign-up and login** | ⬆️ | Sign up with just a username, an email and a password, and log in with either your username or your email address; the session renews automatically |
+| 👤 | **Sign-up and login** | ⬆️ | Sign up with just a username, an email and a password, and log in with either your username or your email address; every form uses the same short, plain field labels; the session renews automatically |
 | 🔑 | **Password reset by email** | ⬆️ | Now a single-use link that expires after one hour |
-| ⚙️ | **Edit profile and Settings** | ⬆️ | Username and email only, and your profile is private. Settings keeps the support contact (now a tidier card with a tappable email), and on large screens stays in one centered column |
+| ⚙️ | **Edit profile and Settings** | ⬆️ | Username and email only, and your profile is private. Settings keeps the support contact (now a tidier card with a tappable email), a clearly labelled **Log out** button in the top right corner, and on large screens stays in one centered column |
 | 📱 | **Phone, tablet and desktop** | ⬆️ | Adapts to every size, including landscape and iPhone, and can be added to the home screen with its own icon |
 | 💬 | **Messages after every action** | ⬆️ | Short, specific messages that say what happened and what to do next |
 | 🫙 | **Empty-list messages** | 🆕 | A friendly "No items yet" on Home, in the list and in the AI box |
@@ -38,7 +38,7 @@ Lista 2 keeps all of that and improves how it looks, feels and behaves.
 | Area | Lista 1 | Lista 2 |
 |------|---------|---------|
 | **Look and feel** | Simple screens | A complete redesign: soft gradients, frosted-glass cards, elegant typography and a gentle loading animation |
-| **Home** | Each list shows its title and its first items; a Logout button beside the greeting | Cards with a progress badge and bar for every list; Logout only in Settings |
+| **Home** | Each list shows its title and its first items; a Logout button beside the greeting | Cards with a progress badge and bar for every list; Logout only in Settings, with the words "Log out" next to the icon |
 | **Loading** | A small loader on an empty page, then everything pops in | Only the three dots, from the moment the app opens, until the whole page and its pictures are ready, then the complete page; a clear message and **Try again** if it cannot load |
 | **List rows** | Handle, checkbox and trash on every row, text in one line that could slide sideways | Photo first, text that wraps inside the row, the checkbox on the right, a faint handle, all in one soft card; a progress bar on top |
 | **Deleting one item** | A trash button on every row | **Swipe left** and tap Delete, with an **Undo** message for 5 seconds (no question asked); on a computer, a two-finger swipe or the trash on hover |
@@ -89,8 +89,8 @@ Lista 2 keeps all of that and improves how it looks, feels and behaves.
 Tap the lightbulb for **five related ideas** for your list. **Tick the ones you like** and add them in one tap, or ask for **New ideas**. See [AI Suggestions](#ai-suggestions).
 
 ### 🎨 Make it yours
-- Choose a **background** from beautiful photos and gradients, or **use your own picture**. It appears on every page after you log in, and a new choice replaces the old background only once its picture has fully loaded.  
-- Update your profile, and log out with one tap.
+- Choose a **background** from beautiful photos and gradients, or **use your own picture**. It appears on every page after you log in. A new choice is handed to every screen at once, and each keeps its old background until the new picture is complete, then switches, so you never see a blank or half-painted background.  
+- Update your profile, and log out with one tap: a **Log out** button (a small red icon with the words beside it, no circle behind it) sits in the top right corner of Settings, in the same column as the page, so it always stays on screen.
 
 <p align="center">
   <img src="screenshots/settings.png" width="240" alt="Choosing a background in Settings">

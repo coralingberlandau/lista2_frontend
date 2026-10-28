@@ -12,7 +12,6 @@ import { ScrollView } from 'react-native-gesture-handler';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import debounce from 'lodash/debounce';
-import AppBackground from '@/components/AppBackground';
 import PageGate from '@/components/PageGate';
 import GlassCard from '@/components/GlassCard';
 import { backgroundImageSources } from '@/constants/backgroundImages';
@@ -26,6 +25,7 @@ import {
 import { colors, fonts, radii } from '@/constants/theme';
 import { API_URL } from '@/constants/config';
 import { describeError } from '@/utils/describeError';
+import { publishBackgroundChoice } from '@/utils/backgroundChoice';
 
 type Swatch =
   | { kind: 'default' }
@@ -54,10 +54,6 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
   // Wide screens (a laptop or desktop window) keep one centered column, with the pictures wrapping
   // across it; phones keep rows of four, exactly as before.
   const wide = windowWidth >= 900;
-  // The background being shown, and a newly picked one that is loading out of sight. The old
-  // background stays until the new picture has finished loading, then they swap in one go.
-  const [shownBackground, setShownBackground] = useState<{ id: number | null; uri: string | null } | null>(null);
-  const [pendingBackground, setPendingBackground] = useState<{ id: number; uri: string | null } | null>(null);
   const SERVER = API_URL;
 
 
@@ -111,15 +107,10 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
           const savedId = Number.isFinite(parsed) ? parsed : null;
           setSelectedImage(savedId);
           setCustomUri(uri);
-          setShownBackground((current) => current ?? { id: savedId, uri });
         } catch (error) {
           console.error('Error loading settings:', error);
         } finally {
-          if (!cancelled) {
-            // Whatever happened, the page can go on with the default background.
-            setShownBackground((current) => current ?? { id: null, uri: null });
-            setDataLoaded(true);
-          }
+          if (!cancelled) setDataLoaded(true);
         }
       };
       load();
@@ -132,13 +123,6 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
   const photoCount = backgroundThumbSources.length;
   const markThumbLoaded = useCallback(() => setThumbsLoaded((count) => count + 1), []);
   const picturesReady = dataLoaded && thumbsLoaded >= photoCount;
-
-  const handlePendingBackgroundReady = useCallback(() => {
-    setPendingBackground((pending) => {
-      if (pending) setShownBackground({ id: pending.id, uri: pending.uri });
-      return null;
-    });
-  }, []);
 
   const debounceSaveToServer = useMemo(
     () =>
@@ -179,7 +163,9 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
 
   const handleBackgroundChange = async (imageId: number, pickedUri: string | null = null) => {
     setSelectedImage(imageId);
-    setPendingBackground({ id: imageId, uri: pickedUri });
+    // Every screen hears about it now: each keeps its old background until the new picture has
+    // loaded, then switches, so no screen shows a blank or half-painted background.
+    publishBackgroundChoice({ id: imageId, uri: pickedUri ?? customUri });
     await AsyncStorage.setItem('customizations', imageId.toString());
     debounceSaveToServer(imageId);
   };
@@ -350,27 +336,16 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
   );
 
   return (
-    <PageGate
-      preloadContent
-      holdBackground={!shownBackground}
-      backgroundOverride={shownBackground}
-      ready={picturesReady}
-    >
-      {/* A newly picked background loads out of sight here and replaces the old one only when it is complete. */}
-      {pendingBackground ? (
-        <View style={[StyleSheet.absoluteFill, styles.hiddenWhileLoading]} pointerEvents="none">
-          <AppBackground
-            key={`${pendingBackground.id}:${pendingBackground.uri ?? ''}`}
-            overrideId={pendingBackground.id}
-            overrideCustomUri={pendingBackground.uri}
-            onReady={handlePendingBackgroundReady}
-          />
-        </View>
-      ) : null}
+    <PageGate preloadContent ready={picturesReady}>
       <ScrollView contentContainerStyle={[styles.container, wide && styles.containerWide]}>
         <View style={styles.headerContainer}>
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <AntDesign name="logout" size={17} color={colors.danger} />
+          <TouchableOpacity
+            onPress={handleLogout}
+            style={styles.logoutButton}
+            accessibilityRole="button"
+            accessibilityLabel="Log out">
+            <AntDesign name="logout" size={20} color={colors.danger} />
+            <Text style={styles.logoutLabel}>Log out</Text>
           </TouchableOpacity>
           <View style={styles.titleBlock}>
             <Text style={styles.title}>{appName}</Text>
@@ -489,21 +464,26 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: colors.textMuted,
   },
+  // In its own row in the top right corner, inside the page column (so it follows the same side
+  // spacing and the centered column on wide screens), with no circle or background behind it.
+  // At least 44 x 44 so it is comfortable to tap; the negative top margin lifts it into the
+  // page's top padding, so the title only moves down a little.
   logoutButton: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.glassBgStrong,
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
-    justifyContent: 'center',
+    alignSelf: 'flex-end',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    minWidth: 44,
+    minHeight: 44,
+    paddingLeft: 10,
+    marginTop: -18,
+    marginBottom: 4,
   },
-  hiddenWhileLoading: {
-    opacity: 0,
+  logoutLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.danger,
   },
   containerWide: {
     // A single centered column on wide screens, a little narrower than the page.

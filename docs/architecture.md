@@ -40,7 +40,8 @@ components/          GlassCard, PrimaryButton, AppBackground, AuroraBackground, 
 constants/           theme.ts (design tokens), config.ts (backend address), backgrounds and their thumbnails
 utils/               authSession.ts (session renewal), describeError.ts (error messages),
                      countItems.ts (the item-counting rule), resizeImage.ts (shrinks photos before upload),
-                     preloadPictures.ts (downloads a page's pictures before it is shown)
+                     preloadPictures.ts (downloads a page's pictures before it is shown),
+                     backgroundChoice.ts (the chosen background, shared by every screen)
 public/              icons, web manifest and the web page template
 netlify/functions/   recommendations.js (AI suggestions with Gemini)
 netlify.toml         Netlify build and redirect settings

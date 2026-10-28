@@ -9,12 +9,14 @@ and nothing in the app should make you wonder what just happened.
 - **Aurora Glass design system**: soft violet, coral and teal gradients, frosted-glass cards, **Fraunces** headings and **DM Sans** body text. 
 - **One visual language everywhere**: every page and every pop-up uses the same masthead-style title with a thin rule underneath, 
   the same rounded cards and the same gradient buttons.
-- **Your own background**: choose a photo, a gradient or your own picture in Settings, and it applies to every screen.
+- **Your own background**: choose a photo, a gradient or your own picture in Settings, and it applies to every screen. Every screen switches at the same moment, and only once the new picture is complete: until then the old background stays, so there is never a blank or half-painted one.
+- **Plain field labels**: every form field uses a short label with no "Enter your…" in front, the same way on every form: *Username*, *Email*, *Password* on Register and Edit Profile, *Email* in the Share pop-up, *Username or email address* and *Password* on Login, *Email* on Forgot password, and *New password* with *Confirm new password* on Change Password.
 - **Gentle loading**: a page shows only the three-dot *Aurora Dots* animation until everything it needs has arrived, then appears complete. One shared rule covers every page: the dots appear only when the wait is noticeable (over a quarter of a second), the page, its background photo and its pictures appear together, a page you have already opened comes back at once, and if it cannot load it says so and offers **Try again**. The dots are also what you see the moment the app opens, before the code or the fonts have loaded, instead of a blank screen.
 
 ### 🧭 Easy to Understand at a Glance
 - **Home shows progress, not paperwork**: each list is a card with a progress badge (`2/5`) and a colored bar, so you see what is done without opening anything.
 - **Few buttons, clear icons**: AI ideas, Share, Check All and Delete sit together at the top right of a list, directly on the page (no circles behind them); everything else is on the page itself.
+- **A Log out button you cannot miss**: in the top right corner of Settings, an icon with the words *Log out* beside it, in a soft red, directly on the page with no circle, at least 44 × 44 px to tap, and inside the page column so it follows the same side spacing on a phone, a tablet and a desktop.
 - **A floating bottom bar**: Home and Settings sit in a white pill that floats above the content.
 - **Quiet rows**: a photo or camera tile first, the text, and the checkbox on the right, in one soft card with thin dividers; the drag handle is very faint.
 - **Checked items look checked**: struck through, with no raw symbols.
@@ -39,7 +41,7 @@ Lista uses a small, consistent design system so every screen feels like one prod
 - **Components** (`components/`):  
   - `GlassCard` - frosted glass surfaces for cards and boxes.  
   - `PrimaryButton` - gradient button with loading and disabled states.  
-  - `AuroraBackground` / `AppBackground` - the soft gradient backdrop and the user's chosen background (it can tell a screen when its picture has finished loading).  
+  - `AuroraBackground` / `AppBackground` - the soft gradient backdrop and the user's chosen background (it keeps the old background until a newly chosen picture is complete, and can tell a screen when its picture has finished loading).  
   - `AuroraDotsLoader` - the three-dot loading animation; `PageLoader` and `PageLoadError` show it for a whole page, or a message with Try again.  
   - `PageGate` - the one loading rule every page uses (dots, background and pictures ready, then the whole page); `StartupScreen` - the dots shown while the app starts.  
   - `FloatingTabBar` - the floating Home / Settings bar.  

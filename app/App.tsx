@@ -29,6 +29,7 @@ import ChangePassword from './ChangePassword';
 import { colors, fonts } from '@/constants/theme';
 import { setSessionExpiredHandler } from '@/utils/authSession';
 import StartupScreen from '@/components/StartupScreen';
+import { publishBackgroundChoice } from '@/utils/backgroundChoice';
 
 const Tab = createBottomTabNavigator<RootStackParamList>();
 
@@ -79,6 +80,12 @@ const App: React.FC = () => {
     setSessionExpiredHandler(() => setIsLoggedIn(false));
     return () => setSessionExpiredHandler(null);
   }, []);
+
+  // A different person (or nobody) is logging in: forget the previous background choice, so the
+  // screens read the new person's own choice instead of flashing the old one.
+  useEffect(() => {
+    publishBackgroundChoice(null);
+  }, [isLoggedIn]);
 
   useEffect(() => {
     const checkLogin = async () => {

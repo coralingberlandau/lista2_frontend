@@ -107,7 +107,7 @@ const ChangePassword: React.FC = () => {
             <TextInput
               {...({ dataSet: { listaField: 'true' } } as any)}
               style={styles.input}
-              placeholder="Enter new password"
+              placeholder="New password"
               placeholderTextColor={colors.placeholder}
               value={password}
               onChangeText={setPassword}

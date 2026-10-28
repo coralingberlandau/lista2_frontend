@@ -1,25 +1,19 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { ImageBackground, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import AuroraBackground from './AuroraBackground';
 import { backgroundImageSources } from '@/constants/backgroundImages';
+import { CUSTOM_BACKGROUND_ID, getGradientById } from '@/constants/gradientBackgrounds';
 import {
-  CUSTOM_BACKGROUND_ID,
-  CUSTOM_BACKGROUND_URI_KEY,
-  getGradientById,
-} from '@/constants/gradientBackgrounds';
+  BackgroundChoice,
+  getBackgroundChoice,
+  loadSavedBackgroundChoice,
+  subscribeToBackgroundChoice,
+} from '@/utils/backgroundChoice';
 
 type AppBackgroundProps = {
-  /**
-   * Lets a screen show a newly picked background immediately, before the
-   * async save round-trip finishes. Falls back to the saved value otherwise.
-   */
-  overrideId?: number | null;
-  /** Same idea as overrideId, for a freshly picked custom photo's local URI. */
-  overrideCustomUri?: string | null;
-  /** Called once the background is ready to be seen (a photo has finished loading). */
+  /** Called once the first background is ready to be seen (a photo has finished loading). */
   onReady?: () => void;
 };
 
@@ -31,62 +25,98 @@ const FROSTED_WASH = [
 ] as const;
 
 /**
- * The app-wide background: the AuroraBackground blobs by default, or the
- * user's chosen photo / gradient / custom upload once they customize it in
- * Settings. Reads the saved choice on every focus so it stays in sync across
- * Home, Settings, and the list screens without a global store.
+ * The app-wide background: the AuroraBackground blobs by default, or the user's chosen photo /
+ * gradient / custom upload once they customize it in Settings.
+ *
+ * Every screen shows the same choice and hears about a change at the same moment (see
+ * utils/backgroundChoice.ts). A newly chosen photo loads out of sight, and the old background
+ * stays on screen until the new one is complete, then they swap in one go, so a screen never
+ * shows a blank or half-painted background.
  */
-export default function AppBackground({ overrideId, overrideCustomUri, onReady }: AppBackgroundProps) {
-  const [storedId, setStoredId] = useState<number | null>(null);
-  const [storedCustomUri, setStoredCustomUri] = useState<string | null>(null);
-  // Until the saved choice has been read, nothing is drawn (instead of the default blobs that would
-  // then be swapped for the real photo).
-  const [choiceRead, setChoiceRead] = useState(false);
+export default function AppBackground({ onReady }: AppBackgroundProps) {
+  const wanted = useSyncExternalStore(subscribeToBackgroundChoice, getBackgroundChoice);
+  // What is on screen now, and (until it has loaded) what it is being changed to.
+  const [shown, setShown] = useState<BackgroundChoice | null>(null);
 
+  // Reads the saved choice whenever a screen appears, so it stays right after logging in.
   useFocusEffect(
     useCallback(() => {
-      let cancelled = false;
-      Promise.all([
-        AsyncStorage.getItem('customizations'),
-        AsyncStorage.getItem(CUSTOM_BACKGROUND_URI_KEY),
-      ])
-        .then(([value, uri]) => {
-          if (cancelled) return;
-          const parsed = value ? parseInt(value, 10) : NaN;
-          setStoredId(Number.isFinite(parsed) ? parsed : null);
-          setStoredCustomUri(uri);
-          setChoiceRead(true);
-        })
-        .catch(() => {
-          if (!cancelled) setChoiceRead(true);
-        });
-      return () => {
-        cancelled = true;
-      };
+      loadSavedBackgroundChoice();
     }, [])
   );
 
-  const activeId = overrideId ?? storedId;
-  const activeCustomUri = overrideCustomUri ?? storedCustomUri;
-  const choiceKnown = choiceRead || overrideId !== undefined;
+  const display = shown ?? wanted;
+  const pending = shown && wanted && !isSameChoice(shown, wanted) ? wanted : null;
+
+  useEffect(() => {
+    if (!shown && wanted) setShown(wanted);
+  }, [shown, wanted]);
+
+  const showPending = useCallback(() => {
+    if (pending) setShown(pending);
+  }, [pending]);
 
   // Gradients and the default blobs need no download, so they are ready at once.
-  const isPhoto =
-    (activeId === CUSTOM_BACKGROUND_ID && !!activeCustomUri) ||
-    (!!activeId && !getGradientById(activeId) && activeId >= 1 && activeId <= backgroundImageSources.length);
+  const displayIsPhoto = !!display && isPhotoChoice(display);
   useEffect(() => {
-    if (choiceKnown && !isPhoto) onReady?.();
-  }, [choiceKnown, isPhoto, onReady]);
+    if (display && !displayIsPhoto) onReady?.();
+  }, [display, displayIsPhoto, onReady]);
 
-  if (!choiceKnown) return null;
+  if (!display) return null;
 
-  if (activeId === CUSTOM_BACKGROUND_ID && activeCustomUri) {
-    return (
-      <PhotoBackground source={{ uri: activeCustomUri }} onReady={onReady} />
-    );
+  // The layers are kept in one keyed list, so the new background that has just finished loading
+  // keeps being the same picture on screen when it takes over: no reload, no blank moment.
+  const layers = [
+    { choice: display, visible: true },
+    ...(pending ? [{ choice: pending, visible: false }] : []),
+  ];
+
+  return (
+    <>
+      {layers.map(({ choice, visible }) => (
+        <View
+          key={`${choice.id}:${choice.uri ?? ''}`}
+          style={[StyleSheet.absoluteFillObject, !visible && styles.hidden]}
+          pointerEvents="none"
+        >
+          <BackgroundLayer choice={choice} onReady={visible ? onReady : showPending} readyWhenNotPhoto={!visible} />
+        </View>
+      ))}
+    </>
+  );
+}
+
+// (The store already ignores the picture address for built-in choices, so comparing both is enough.)
+const isSameChoice = (a: BackgroundChoice, b: BackgroundChoice) => a.id === b.id && a.uri === b.uri;
+
+function isPhotoChoice(choice: BackgroundChoice) {
+  if (choice.id === CUSTOM_BACKGROUND_ID && choice.uri) return true;
+  return (
+    !!choice.id && !getGradientById(choice.id) && choice.id >= 1 && choice.id <= backgroundImageSources.length
+  );
+}
+
+/** One background, drawn as a photo, a gradient or the default blobs. */
+function BackgroundLayer({
+  choice,
+  onReady,
+  readyWhenNotPhoto = false,
+}: {
+  choice: BackgroundChoice;
+  onReady?: () => void;
+  /** For the hidden layer: say "ready" at once when there is nothing to download. */
+  readyWhenNotPhoto?: boolean;
+}) {
+  const isPhoto = isPhotoChoice(choice);
+  useEffect(() => {
+    if (readyWhenNotPhoto && !isPhoto) onReady?.();
+  }, [readyWhenNotPhoto, isPhoto, onReady]);
+
+  if (choice.id === CUSTOM_BACKGROUND_ID && choice.uri) {
+    return <PhotoBackground source={{ uri: choice.uri }} onReady={onReady} />;
   }
 
-  const gradient = activeId ? getGradientById(activeId) : null;
+  const gradient = choice.id ? getGradientById(choice.id) : null;
   if (gradient) {
     return (
       <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
@@ -101,8 +131,8 @@ export default function AppBackground({ overrideId, overrideCustomUri, onReady }
   }
 
   const image =
-    activeId && activeId >= 1 && activeId <= backgroundImageSources.length
-      ? backgroundImageSources[activeId - 1]
+    choice.id && choice.id >= 1 && choice.id <= backgroundImageSources.length
+      ? backgroundImageSources[choice.id - 1]
       : null;
 
   if (!image) {
@@ -138,6 +168,9 @@ function PhotoBackground({ source, onReady }: { source: any; onReady?: () => voi
 }
 
 const styles = StyleSheet.create({
+  hidden: {
+    opacity: 0,
+  },
   // Without an explicit width/height, react-native-web sizes the image's
   // container to the source photo's own natural pixel dimensions instead of
   // stretching to fill absoluteFillObject's inset (0/0/0/0) box, leaving the
