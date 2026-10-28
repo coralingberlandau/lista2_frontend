@@ -22,7 +22,7 @@
 | 💡 | **AI ideas** | ⬆️ | Suggestions for your list. Now from Google Gemini, with tick-and-add, "New ideas" and friendly error states |
 | 🎨 | **Backgrounds** | ⬆️ | Photos saved per person. Now also gradients and your own picture, on every page after you log in and scaled to any screen. A newly chosen background replaces the old one only once it has fully loaded |
 | 🚪 | **Opening the app** | ⬆️ | Lista 1 opened on a Welcome page that asked people to wait for the free-tier server to wake up before using the app. Lista 2 opens straight on Login |
-| 👤 | **Sign-up and login** | ⬆️ | Now just a username, an email and a password; the session renews automatically |
+| 👤 | **Sign-up and login** | ⬆️ | Sign up with just a username, an email and a password, and log in with either your username or your email address; the session renews automatically |
 | 🔑 | **Password reset by email** | ⬆️ | Now a single-use link that expires after one hour |
 | ⚙️ | **Edit profile and Settings** | ⬆️ | Username and email only, and your profile is private. Settings keeps the support contact (now a tidier card with a tappable email), and on large screens stays in one centered column |
 | 📱 | **Phone, tablet and desktop** | ⬆️ | Adapts to every size, including landscape and iPhone, and can be added to the home screen with its own icon |
@@ -56,7 +56,7 @@ Lista 2 keeps all of that and improves how it looks, feels and behaves.
 | **Empty lists** | Blank | A friendly "No items yet" on Home, in the list and in the AI box |
 | **Sign-up** | Username, first name, last name, email and password | **Just username, email and password** |
 | **Opening the app** | A Welcome page that asked people to wait for the free-tier server to wake up before using the app | Opens straight on Login, so there is no waiting step |
-| **Accounts and sessions** | Login | The session renews automatically, your profile is private, passwords must be strong, and reset links work once and expire |
+| **Accounts and sessions** | Login with a username | Log in with a **username or an email address**; the session renews automatically, your profile is private, passwords must be strong, and reset links work once and expire |
 
 ## Feature guide
 
@@ -104,8 +104,14 @@ On a large screen, Settings stays in one centered column and the backgrounds wra
 
 ### 🔒 Safe and always with you
 - **Sign up in seconds** with just a username, an email and a password. Your account is private, and a password-reset link sent by email works only once.  
+- **Log in with a username or an email address**: type either in the first field. Either way, Home greets you by your username.  
 - The login renews itself quietly, so you are not thrown out in the middle of a list.  
 - Works on phone, tablet and desktop, and can be added to a phone's home screen with its own icon.
+
+<p align="center">
+  <img src="screenshots/login.png" width="240" alt="The Login page">
+  <img src="screenshots/login-email.png" width="240" alt="Logging in with an email address">
+</p>
 
 <p align="center">
   <img src="screenshots/desktop-home.png" width="720" alt="Lista on a desktop screen">
