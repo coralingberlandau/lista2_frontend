@@ -1340,7 +1340,7 @@ const ListItemDetails: React.FC = () => {
                   <Text style={styles.shareLabel}>Add an email</Text>
                   <View style={styles.shareInputRow}>
                     <TextInput
-                      placeholder="Enter an email"
+                      placeholder="Email"
                       placeholderTextColor={colors.placeholder}
                       value={shareValue}
                       onChangeText={setShareValue}
