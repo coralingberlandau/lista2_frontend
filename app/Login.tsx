@@ -18,6 +18,7 @@ import { API_URL } from '@/constants/config';
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
 
 const Login: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> }> = ({ setIsLoggedIn }) => {
+  // What the person types in the first field: their username or their email address.
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
@@ -30,7 +31,7 @@ const Login: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> 
     setErrorText('');
 
     if (!username || !password) {
-      setErrorText('Please enter both username and password.');
+      setErrorText('Please enter your username or email address and your password.');
       return;
     }
 
@@ -38,7 +39,7 @@ const Login: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> 
       setLoading(true);
       try {
         const response = await axios.post(`${SERVER}/login/`, {
-          username,
+          username: username.trim(),
           password,
         });
 
@@ -66,13 +67,15 @@ const Login: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> 
           await AsyncStorage.setItem('refreshToken', response.data.refresh);
         }
         await AsyncStorage.setItem('userId', userId.toString());
-        await AsyncStorage.setItem('userName', username);
+        // The account's real username (it comes with the login), also when an email address was typed,
+        // so the Home greeting never shows an email address.
+        await AsyncStorage.setItem('userName', decodedToken.username || username.trim());
 
         setIsLoggedIn(true);
       } catch (error: any) {
         console.error(error);
         if (error.response && error.response.status === 401) {
-          setErrorText('Incorrect username or password. Please try again.');
+          setErrorText('Incorrect username, email address or password. Please try again.');
         } else {
           setErrorText('Something went wrong. Please try again.');
         }
@@ -111,7 +114,8 @@ const Login: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> 
             <Input
               value={username}
               onChangeText={setUsername}
-              placeholder="Enter your username"
+              placeholder="Username or email address"
+              autoComplete="username"
               autoCapitalize="none"
               placeholderTextColor={colors.placeholder}
               style={styles.input}
@@ -128,7 +132,7 @@ const Login: React.FC<{ setIsLoggedIn: Dispatch<SetStateAction<boolean | null>> 
             <Input
               value={password}
               onChangeText={setPassword}
-              placeholder="Enter your password"
+              placeholder="Password"
               secureTextEntry={!showPassword}
               autoCapitalize="none"
               placeholderTextColor={colors.placeholder}

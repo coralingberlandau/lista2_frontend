@@ -97,7 +97,7 @@ Phone, tablet and desktop. Add it to your home screen.
 | 💡 | **AI ideas** | ⬆️ | Suggestions for your list. Now from Google Gemini, with tick-and-add, "New ideas" and friendly error states |
 | 🎨 | **Backgrounds** | ⬆️ | Photos saved per person. Now also gradients and your own picture, on every page after you log in and scaled to any screen. A newly chosen background replaces the old one only once it has fully loaded |
 | 🚪 | **Opening the app** | ⬆️ | Lista 1 opened on a Welcome page that asked people to wait for the free-tier server to wake up before using the app. Lista 2 opens straight on Login |
-| 👤 | **Sign-up and login** | ⬆️ | Now just a username, an email and a password; the session renews automatically |
+| 👤 | **Sign-up and login** | ⬆️ | Sign up with just a username, an email and a password, and log in with either your username or your email address; the session renews automatically |
 | 🔑 | **Password reset by email** | ⬆️ | Now a single-use link that expires after one hour |
 | ⚙️ | **Edit profile and Settings** | ⬆️ | Username and email only, and your profile is private. Settings keeps the support contact (now a tidier card with a tappable email), and on large screens stays in one centered column |
 | 📱 | **Phone, tablet and desktop** | ⬆️ | Adapts to every size, including landscape and iPhone, and can be added to the home screen with its own icon |
