@@ -92,7 +92,7 @@ const ResetPassword: React.FC = () => {
               {...({ dataSet: { listaField: 'true' } } as any)}
               value={email}
               onChangeText={setEmail}
-              placeholder="Enter your email"
+              placeholder="Email"
               placeholderTextColor={colors.placeholder}
               keyboardType="email-address"
               autoCapitalize="none"

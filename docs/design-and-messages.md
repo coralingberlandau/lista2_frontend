@@ -10,6 +10,7 @@ and nothing in the app should make you wonder what just happened.
 - **One visual language everywhere**: every page and every pop-up uses the same masthead-style title with a thin rule underneath, 
   the same rounded cards and the same gradient buttons.
 - **Your own background**: choose a photo, a gradient or your own picture in Settings, and it applies to every screen. Every screen switches at the same moment, and only once the new picture is complete: until then the old background stays, so there is never a blank or half-painted one.
+- **Plain field labels**: every form field uses a short label with no "Enter your…" in front, the same way on every form: *Username*, *Email*, *Password* on Register and Edit Profile, *Username or email address* and *Password* on Login, *Email* on Forgot password, and *New password* with *Confirm new password* on Change Password.
 - **Gentle loading**: a page shows only the three-dot *Aurora Dots* animation until everything it needs has arrived, then appears complete. One shared rule covers every page: the dots appear only when the wait is noticeable (over a quarter of a second), the page, its background photo and its pictures appear together, a page you have already opened comes back at once, and if it cannot load it says so and offers **Try again**. The dots are also what you see the moment the app opens, before the code or the fonts have loaded, instead of a blank screen.
 
 ### 🧭 Easy to Understand at a Glance
