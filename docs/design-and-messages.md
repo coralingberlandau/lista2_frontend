@@ -16,6 +16,7 @@ and nothing in the app should make you wonder what just happened.
 ### 🧭 Easy to Understand at a Glance
 - **Home shows progress, not paperwork**: each list is a card with a progress badge (`2/5`) and a colored bar, so you see what is done without opening anything.
 - **Few buttons, clear icons**: AI ideas, Share, Check All and Delete sit together at the top right of a list, directly on the page (no circles behind them); everything else is on the page itself.
+- **A Log out button you cannot miss**: in the top right corner of Settings, an icon with the words *Log out* beside it, in a soft red, directly on the page with no circle, at least 44 × 44 px to tap, and inside the page column so it follows the same side spacing on a phone, a tablet and a desktop.
 - **A floating bottom bar**: Home and Settings sit in a white pill that floats above the content.
 - **Quiet rows**: a photo or camera tile first, the text, and the checkbox on the right, in one soft card with thin dividers; the drag handle is very faint.
 - **Checked items look checked**: struck through, with no raw symbols.

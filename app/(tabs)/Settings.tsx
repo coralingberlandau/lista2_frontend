@@ -339,8 +339,13 @@ const Settings: React.FC<SettingsProps> = ({ setIsLoggedIn }) => {
     <PageGate preloadContent ready={picturesReady}>
       <ScrollView contentContainerStyle={[styles.container, wide && styles.containerWide]}>
         <View style={styles.headerContainer}>
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <AntDesign name="logout" size={17} color={colors.danger} />
+          <TouchableOpacity
+            onPress={handleLogout}
+            style={styles.logoutButton}
+            accessibilityRole="button"
+            accessibilityLabel="Log out">
+            <AntDesign name="logout" size={20} color={colors.danger} />
+            <Text style={styles.logoutLabel}>Log out</Text>
           </TouchableOpacity>
           <View style={styles.titleBlock}>
             <Text style={styles.title}>{appName}</Text>
@@ -459,18 +464,26 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: colors.textMuted,
   },
+  // In its own row in the top right corner, inside the page column (so it follows the same side
+  // spacing and the centered column on wide screens), with no circle or background behind it.
+  // At least 44 x 44 so it is comfortable to tap; the negative top margin lifts it into the
+  // page's top padding, so the title only moves down a little.
   logoutButton: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.glassBgStrong,
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
-    justifyContent: 'center',
+    alignSelf: 'flex-end',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    minWidth: 44,
+    minHeight: 44,
+    paddingLeft: 10,
+    marginTop: -18,
+    marginBottom: 4,
+  },
+  logoutLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.danger,
   },
   containerWide: {
     // A single centered column on wide screens, a little narrower than the page.

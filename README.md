@@ -15,7 +15,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-2.0.0-blue" alt="Version">
-  <img src="https://img.shields.io/badge/backend%20tests-73%20passing-brightgreen" alt="Backend tests">
+  <img src="https://img.shields.io/badge/backend%20tests-81%20passing-brightgreen" alt="Backend tests">
   <img src="https://img.shields.io/badge/Expo%20SDK-51-000020" alt="Expo SDK 51">
   <img src="https://img.shields.io/badge/hosted%20on-Netlify-00C7B7" alt="Netlify">
 </p>
@@ -99,7 +99,7 @@ Phone, tablet and desktop. Add it to your home screen.
 | 🚪 | **Opening the app** | ⬆️ | Lista 1 opened on a Welcome page that asked people to wait for the free-tier server to wake up before using the app. Lista 2 opens straight on Login |
 | 👤 | **Sign-up and login** | ⬆️ | Sign up with just a username, an email and a password, and log in with either your username or your email address; every form uses the same short, plain field labels; the session renews automatically |
 | 🔑 | **Password reset by email** | ⬆️ | Now a single-use link that expires after one hour |
-| ⚙️ | **Edit profile and Settings** | ⬆️ | Username and email only, and your profile is private. Settings keeps the support contact (now a tidier card with a tappable email), and on large screens stays in one centered column |
+| ⚙️ | **Edit profile and Settings** | ⬆️ | Username and email only, and your profile is private. Settings keeps the support contact (now a tidier card with a tappable email), a clearly labelled **Log out** button in the top right corner, and on large screens stays in one centered column |
 | 📱 | **Phone, tablet and desktop** | ⬆️ | Adapts to every size, including landscape and iPhone, and can be added to the home screen with its own icon |
 | 💬 | **Messages after every action** | ⬆️ | Short, specific messages that say what happened and what to do next |
 | 🫙 | **Empty-list messages** | 🆕 | A friendly "No items yet" on Home, in the list and in the AI box |
