@@ -80,6 +80,18 @@ const ListItemDetails: React.FC = () => {
   const isUpdateMode = !!listItem
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [title, setTitle] = useState(listItem ? listItem.title : '');
+  // The title box grows with its text, so a long title continues on the next line (like the title of a
+  // list that is shared as read only) instead of being cut off at the edges of the screen.
+  const titleBox = useRef<TextInput>(null);
+  // It runs after every redraw, because the box only exists once the page has loaded and it must also
+  // follow the screen width and the fonts arriving.
+  useEffect(() => {
+    const box = titleBox.current as any;
+    if (box && box.style) {
+      box.style.height = 'auto';
+      box.style.height = `${box.scrollHeight}px`;
+    }
+  });
   const [items, setItems] = useState<string[]>(listItem ? listItem.items.split("|") : ['']);
   const [permission, setPermission] = useState('read_only');
   const [shareValue, setShareValue] = useState('');
@@ -984,9 +996,16 @@ const ListItemDetails: React.FC = () => {
           <View style={styles.titleBlock}>
             {canEdit ? (
               <TextInput
-                style={[styles.titleInput, { outline: 'none' }]}
+                ref={titleBox}
+                // A box that grows with its text, but a title is still a single paragraph: Enter does not
+                // add a new line, and line breaks in pasted text become spaces.
+                multiline
+                numberOfLines={1}
+                scrollEnabled={false}
+                style={[styles.titleInput, styles.titleInputEditable, { outline: 'none' }]}
                 value={title}
-                onChangeText={setTitle}
+                onChangeText={(text) => setTitle(text.replace(/\s*[\r\n]+\s*/g, ' '))}
+                onKeyPress={(e: any) => { if (e.nativeEvent?.key === 'Enter') e.preventDefault?.(); }}
                 placeholderTextColor={colors.placeholder}
                 placeholder="Edit Title" />
             ) : (
@@ -1650,6 +1669,14 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 20,
   },
+  // The full width of the page column (without the extra side padding the read-only title has), so a
+  // title that fitted on one line before still does.
+  titleInputEditable: {
+    width: '100%',
+    paddingHorizontal: 0,
+    overflow: 'hidden',
+    resize: 'none',
+  } as any,
   titleRule: {
     width: 32,
     height: 1,

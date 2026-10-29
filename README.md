@@ -83,7 +83,7 @@ Phone, tablet and desktop. Add it to your home screen.
 
 | | Feature | Status | In short |
 |:-:|---|:-:|---|
-| ✍️ | **Create and save lists** | ✅ | A title and as many items as you like, saved to your account |
+| ✍️ | **Create and save lists** | ✅ | A title and as many items as you like, saved to your account. A long title continues on the next line instead of being cut off |
 | ☑️ | **Tick items off** | ✅ | Mark items as done |
 | ☑️ | **Check All / Uncheck All** | 🆕 | Tick or clear a whole list in one tap, so a list is easy to reuse |
 | 🏠 | **Home with your lists** | 🔁 | Your lists and a "Hello, <username>" greeting. Logout now lives in Settings only |

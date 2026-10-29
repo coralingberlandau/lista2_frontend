@@ -8,7 +8,7 @@
 
 | | Feature | Status | In short |
 |:-:|---|:-:|---|
-| ✍️ | **Create and save lists** | ✅ | A title and as many items as you like, saved to your account |
+| ✍️ | **Create and save lists** | ✅ | A title and as many items as you like, saved to your account. A long title continues on the next line instead of being cut off |
 | ☑️ | **Tick items off** | ✅ | Mark items as done |
 | ☑️ | **Check All / Uncheck All** | 🆕 | Tick or clear a whole list in one tap, so a list is easy to reuse |
 | 🏠 | **Home with your lists** | 🔁 | Your lists and a "Hello, <username>" greeting. Logout now lives in Settings only |
@@ -66,6 +66,7 @@ Lista 2 keeps all of that and improves how it looks, feels and behaves.
 - **Progress at a glance**: every list on Home is a card with a badge (`2/7`) and a colored bar, and every list has a progress bar at the top.  
 - **Pictures**: attach a picture to any row. Tap it to open the viewer: swipe between pictures, replace or remove one.  
 - **Organize by dragging**: pick a row up by its faint six-dot handle and drop it where it belongs; its picture moves with it. Press **Enter** to add a row right below. Long text wraps inside its row.  
+- **Long titles stay whole**: a title that is too long for one line continues on the next line, in English or Hebrew and on any screen size, so you can always read and edit all of it. Pressing Enter in the title does not add a line, and line breaks in pasted text become spaces.  
 - **Delete safely**: deleting a whole list asks first and warns when it is shared (lists are hidden, never erased). Deleting one item is a swipe to the left, followed by **Undo** for 5 seconds; nothing is saved until you press **Update List**.  
 
 <p align="center">
@@ -73,6 +74,7 @@ Lista 2 keeps all of that and improves how it looks, feels and behaves.
   <img src="screenshots/swipe-delete.png" width="240" alt="Swiping a row to delete it">
   <img src="screenshots/undo.png" width="240" alt="Item deleted, with Undo">
   <img src="screenshots/image-viewer.png" width="240" alt="The picture viewer">
+  <img src="screenshots/long-title.png" width="240" alt="A long list title continuing on the next lines">
 </p>
 
 ### 🤝 Share with the right permissions
