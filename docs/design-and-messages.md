@@ -6,7 +6,7 @@ Lista is designed to feel like *a quiet place to keep what matters*. A list shou
 and nothing in the app should make you wonder what just happened.
 
 ### 🎨 A Calm, Consistent Look
-- **Aurora Glass design system**: soft violet, coral and teal gradients, frosted-glass cards, **Fraunces** headings and **DM Sans** body text. 
+- **Aurora Glass design system**: soft violet, coral and teal gradients, frosted-glass cards, **Fraunces** headings and **DM Sans** body text. Hebrew has no letters in those two fonts, so Hebrew titles use **Heebo Bold**: English and Hebrew titles are equally bold, also when one title mixes both. 
 - **One visual language everywhere**: every page and every pop-up uses the same masthead-style title with a thin rule underneath, 
   the same rounded cards and the same gradient buttons.
 - **Your own background**: choose a photo, a gradient or your own picture in Settings, and it applies to every screen. Every screen switches at the same moment, and only once the new picture is complete: until then the old background stays, so there is never a blank or half-painted one.
@@ -19,6 +19,7 @@ and nothing in the app should make you wonder what just happened.
 - **A Log out button you cannot miss**: in the top right corner of Settings, an icon with the words *Log out* beside it, in a soft red, directly on the page with no circle, at least 44 × 44 px to tap, and inside the page column so it follows the same side spacing on a phone, a tablet and a desktop.
 - **A floating bottom bar**: Home and Settings sit in a white pill that floats above the content.
 - **Quiet rows**: a photo or camera tile first, the text, and the checkbox on the right, in one soft card with thin dividers; the drag handle is very faint.
+- **Long titles are never cut off**: the title of a list continues on the next line, at the same size as a short one, in English and in Hebrew. A list shared with you as read only looks the same.
 - **Checked items look checked**: struck through, with no raw symbols.
 
 ### 💬 Clear Feedback After Every Action

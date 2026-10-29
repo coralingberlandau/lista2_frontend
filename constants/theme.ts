@@ -4,6 +4,8 @@
  * so the whole app reads as one consistent design system.
  */
 
+import { Platform } from 'react-native';
+
 export const colors = {
   background: '#FBF9F6',
 
@@ -78,6 +80,12 @@ export function progressGradient(done: number, total: number): readonly [string,
   return [start, end];
 }
 
+// DM Sans and Fraunces have no Hebrew letters, so a Hebrew title would be drawn in whatever font the
+// device has, in regular weight. On the web a list of fonts lets the browser take each letter from the
+// first font that has it: English stays in DM Sans / Fraunces and Hebrew comes from Heebo Bold, so
+// titles in both languages look equally bold. (Other platforms take a single font name.)
+const withHebrew = (font: string) => (Platform.OS === 'web' ? `${font}, Heebo_700Bold` : font);
+
 export const fonts = {
   display: 'Fraunces_600SemiBold',
   displayItalic: 'Fraunces_500Medium_Italic',
@@ -88,6 +96,9 @@ export const fonts = {
   bodySemiBold: 'DMSans_600SemiBold',
   bodyBold: 'DMSans_700Bold',
   bodyExtraBold: 'DMSans_800ExtraBold',
+  // For titles people type themselves, which may be in Hebrew.
+  bodyBoldTitle: withHebrew('DMSans_700Bold'),
+  displayTitle: withHebrew('Fraunces_600SemiBold'),
 };
 
 export const radii = {

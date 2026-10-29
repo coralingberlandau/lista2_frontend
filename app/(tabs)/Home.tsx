@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     ...shadows.glow,
   },
   boldText: {
-    fontFamily: fonts.bodyBold,
+    fontFamily: fonts.bodyBoldTitle,
     fontSize: 17,
     color: colors.text,
   },

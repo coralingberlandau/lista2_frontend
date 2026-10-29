@@ -83,7 +83,7 @@ Phone, tablet and desktop. Add it to your home screen.
 
 | | Feature | Status | In short |
 |:-:|---|:-:|---|
-| ✍️ | **Create and save lists** | ✅ | A title and as many items as you like, saved to your account |
+| ✍️ | **Create and save lists** | ✅ | A title and as many items as you like, saved to your account. A long title continues on the next line instead of being cut off |
 | ☑️ | **Tick items off** | ✅ | Mark items as done |
 | ☑️ | **Check All / Uncheck All** | 🆕 | Tick or clear a whole list in one tap, so a list is easy to reuse |
 | 🏠 | **Home with your lists** | 🔁 | Your lists and a "Hello, <username>" greeting. Logout now lives in Settings only |
@@ -103,7 +103,7 @@ Phone, tablet and desktop. Add it to your home screen.
 | 📱 | **Phone, tablet and desktop** | ⬆️ | Adapts to every size, including landscape and iPhone, and can be added to the home screen with its own icon |
 | 💬 | **Messages after every action** | ⬆️ | Short, specific messages that say what happened and what to do next |
 | 🫙 | **Empty-list messages** | 🆕 | A friendly "No items yet" on Home, in the list and in the AI box |
-| ✨ | **Look and feel** | 🆕 | A complete redesign: soft gradients, frosted-glass cards, photo-first rows and a floating bottom bar |
+| ✨ | **Look and feel** | 🆕 | A complete redesign: soft gradients, frosted-glass cards, photo-first rows and a floating bottom bar. Titles in Hebrew are as bold as titles in English |
 
 More detail, including everything Lista 1 offered, is in the [feature guide](docs/features.md).
 
