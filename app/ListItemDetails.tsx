@@ -1644,7 +1644,7 @@ const styles = StyleSheet.create({
   },
   titleInput: {
     fontSize: 35,
-    fontFamily: fonts.display,
+    fontFamily: fonts.displayTitle,
     color: colors.text,
     textAlign: 'center',
     paddingVertical: 6,

@@ -28,7 +28,7 @@ Lista is split into three parts that each do one job:
 | Communication | Axios, with JWT login and automatic session renewal |
 | Email | **Brevo** (password-reset emails, sent by the backend) |
 | AI | **Google Gemini**, called by a Netlify function |
-| Typography | Fraunces (headings) and DM Sans (text) via Expo Google Fonts |
+| Typography | Fraunces (headings) and DM Sans (text), plus Heebo Bold for Hebrew letters in titles, via Expo Google Fonts |
 | Messages | `react-native-toast-message` with custom gradient cards |
 
 ## Project structure

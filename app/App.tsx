@@ -13,6 +13,7 @@ import {
   DMSans_700Bold,
   DMSans_800ExtraBold,
 } from '@expo-google-fonts/dm-sans';
+import { Heebo_700Bold } from '@expo-google-fonts/heebo';
 import { TabBarIcon } from '@/components/navigation/TabBarIcon';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from '@/components/ToastConfig';
@@ -66,6 +67,7 @@ const App: React.FC = () => {
     DMSans_600SemiBold,
     DMSans_700Bold,
     DMSans_800ExtraBold,
+    Heebo_700Bold,
   });
 
   useEffect(() => {

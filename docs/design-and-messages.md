@@ -6,7 +6,7 @@ Lista is designed to feel like *a quiet place to keep what matters*. A list shou
 and nothing in the app should make you wonder what just happened.
 
 ### 🎨 A Calm, Consistent Look
-- **Aurora Glass design system**: soft violet, coral and teal gradients, frosted-glass cards, **Fraunces** headings and **DM Sans** body text. 
+- **Aurora Glass design system**: soft violet, coral and teal gradients, frosted-glass cards, **Fraunces** headings and **DM Sans** body text. Hebrew has no letters in those two fonts, so Hebrew titles use **Heebo Bold**: English and Hebrew titles are equally bold, also when one title mixes both. 
 - **One visual language everywhere**: every page and every pop-up uses the same masthead-style title with a thin rule underneath, 
   the same rounded cards and the same gradient buttons.
 - **Your own background**: choose a photo, a gradient or your own picture in Settings, and it applies to every screen. Every screen switches at the same moment, and only once the new picture is complete: until then the old background stays, so there is never a blank or half-painted one.

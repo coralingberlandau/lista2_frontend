@@ -28,7 +28,7 @@
 | 📱 | **Phone, tablet and desktop** | ⬆️ | Adapts to every size, including landscape and iPhone, and can be added to the home screen with its own icon |
 | 💬 | **Messages after every action** | ⬆️ | Short, specific messages that say what happened and what to do next |
 | 🫙 | **Empty-list messages** | 🆕 | A friendly "No items yet" on Home, in the list and in the AI box |
-| ✨ | **Look and feel** | 🆕 | A complete redesign: soft gradients, frosted-glass cards, photo-first rows and a floating bottom bar |
+| ✨ | **Look and feel** | 🆕 | A complete redesign: soft gradients, frosted-glass cards, photo-first rows and a floating bottom bar. Titles in Hebrew are as bold as titles in English |
 
 ## Lista 1 compared with Lista 2
 
@@ -37,7 +37,7 @@ Lista 2 keeps all of that and improves how it looks, feels and behaves.
 
 | Area | Lista 1 | Lista 2 |
 |------|---------|---------|
-| **Look and feel** | Simple screens | A complete redesign: soft gradients, frosted-glass cards, elegant typography and a gentle loading animation |
+| **Look and feel** | Simple screens | A complete redesign: soft gradients, frosted-glass cards, elegant typography (also for Hebrew titles) and a gentle loading animation |
 | **Home** | Each list shows its title and its first items; a Logout button beside the greeting | Cards with a progress badge and bar for every list; Logout only in Settings, with the words "Log out" next to the icon |
 | **Loading** | A small loader on an empty page, then everything pops in | Only the three dots, from the moment the app opens, until the whole page and its pictures are ready, then the complete page; a clear message and **Try again** if it cannot load |
 | **List rows** | Handle, checkbox and trash on every row, text in one line that could slide sideways | Photo first, text that wraps inside the row, the checkbox on the right, a faint handle, all in one soft card; a progress bar on top |
@@ -100,6 +100,13 @@ On a large screen, Settings stays in one centered column and the backgrounds wra
 
 <p align="center">
   <img src="screenshots/settings-wide.png" width="600" alt="Settings on a large screen">
+</p>
+
+### 🔤 Hebrew and English look the same
+- A list title in Hebrew is as bold as one in English, on Home and at the top of an open list, and a title that mixes both languages looks even. English letters keep their font (DM Sans on Home, Fraunces in an open list) and Hebrew letters come from **Heebo Bold**, one extra 55 KB font that comes with the app, so it looks the same on every phone and computer.
+
+<p align="center">
+  <img src="screenshots/home-hebrew.png" width="240" alt="Home with titles in English, in Hebrew and in both">
 </p>
 
 ### 🔒 Safe and always with you
